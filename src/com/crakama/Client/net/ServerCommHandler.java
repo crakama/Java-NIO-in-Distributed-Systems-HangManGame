@@ -13,19 +13,21 @@ import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.*;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ForkJoinPool;
 
 public class ServerCommHandler  implements Runnable{
     private InetSocketAddress serverAddress;
     private Map<SocketChannel, Queue<ByteBuffer>> pendindDataToSend = new HashMap();
-    private ByteBuffer byteBuffer = ByteBuffer.allocate(8192);
+    private final MsgProcessor msgProcessor = new MsgProcessor();
+    private ByteBuffer bufferedServerMsg = ByteBuffer.allocate(8192);
     private List<OutputHandler> commListeners = new ArrayList<>();
     private List pendingChanges = new LinkedList();
-    private volatile boolean dataToSendAvailable = false;
     private boolean connected = false;
     private SocketChannel socketChannel;
     private Selector selector;
 
-    public ServerCommHandler(){
+    public ServerCommHandler() {
 
     }
 
@@ -96,8 +98,41 @@ public class ServerCommHandler  implements Runnable{
         }
         key.interestOps(SelectionKey.OP_WRITE);
     }
-    private void receiveMsg(SelectionKey key) {
+    private void receiveMsg(SelectionKey key) throws IOException {
+       SocketChannel socketChannel = (SocketChannel) key.channel();
+       int bytesRead = socketChannel.read(bufferedServerMsg);
+       if(bytesRead == -1){
+           pendindDataToSend.remove(socketChannel);
+           return;
+       }
+       if(bytesRead > 0){
+           String receivedData = readBufferData();
+           msgProcessor.appendRecvdString(receivedData);
+           while (msgProcessor.hasMsg()){
+              String msg = msgProcessor.nextMsg();
+              displayMsg(MsgProcessor.msgBody(msg));
+           }
+       }
     }
+
+    private void displayMsg(String msg) {
+        Executor forkPool = ForkJoinPool.commonPool();
+        for(OutputHandler listener: commListeners){
+            forkPool.execute(() -> listener.handleServerResponse(msg));
+        }
+    }
+
+    /**
+     * Prepare buffer for reading
+     * @return
+     */
+    private String readBufferData() {
+        bufferedServerMsg.flip();
+        byte[] bytes = new byte[bufferedServerMsg.remaining()];
+        bufferedServerMsg.get(bytes);
+        return new String(bytes);
+    }
+
 
     /**
      * Retrieve message from buffer and write to channel
@@ -108,7 +143,6 @@ public class ServerCommHandler  implements Runnable{
 
     public void sendMsg(SelectionKey key) throws IOException {
         SocketChannel socketChannel = (SocketChannel)key.channel();
-
         synchronized (pendindDataToSend){
             Queue<ByteBuffer> queue = this.pendindDataToSend.get(socketChannel);
             while (!queue.isEmpty()){

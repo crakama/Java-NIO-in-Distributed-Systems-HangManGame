@@ -7,6 +7,7 @@ import java.util.StringJoiner;
 public class MsgProcessor {
     private StringBuilder recvdMsgParts = new StringBuilder();
     private final Queue<String> completeMsgs = new ArrayDeque<>();
+    private boolean var;
 
     /**
      *  Takes is string messages and adds a length header to prepare it for send
@@ -19,9 +20,13 @@ public class MsgProcessor {
     }
 
 
+    public synchronized boolean hasMsg(){
+        return completeMsgs.isEmpty();
+    }
 
-
-
+    public synchronized String nextMsg(){
+        return completeMsgs.poll();
+    }
     /**
      * Appends a newly received string to previously received strings.
      * @param recvdString The received string.
@@ -36,8 +41,8 @@ public class MsgProcessor {
      */
 
     private boolean extractMsg() {
-        String allRecvdChars = recvdMsgParts.toString();
-        String[] msgSplits = allRecvdChars.split(ConstantValues.MSG_LEN_DELIMETER);
+        String allrecvdMsgParts = recvdMsgParts.toString();
+        String[] msgSplits = allrecvdMsgParts.split(ConstantValues.MSG_LEN_DELIMETER);
         if (msgSplits.length < 2) {
             return false;
         }
