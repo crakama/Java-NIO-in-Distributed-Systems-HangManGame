@@ -1,7 +1,7 @@
-package com.crakama.Client.start;
+package com.crakama.client.start;
 
 
-import com.crakama.Client.view.CmdInterpreter;
+import com.crakama.client.view.CmdInterpreter;
 
 public class ClientHangMan {
     public static void main(String[] args){

@@ -16,7 +16,7 @@ public enum MsgType {
     STOP,
 
     /**
-     * Client is about to close, all server recourses related to the sending client should be
+     * client is about to close, all server recourses related to the sending client should be
      * released.
      */
     DISCONNECT

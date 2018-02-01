@@ -1,4 +1,4 @@
-package com.crakama.Client.view;
+package com.crakama.client.view;
 
 public enum CmdType {
     /**

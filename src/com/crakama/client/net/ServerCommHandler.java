@@ -1,4 +1,4 @@
-package com.crakama.Client.net;
+package com.crakama.client.net;
 
 import com.crakama.common.ConstantValues;
 import com.crakama.common.MsgProcessor;
@@ -84,7 +84,7 @@ public class ServerCommHandler  implements Runnable{
     }
 
     /**
-     * Finish Client Connection and make it ready for write operations
+     * Finish client Connection and make it ready for write operations
      * @param key
      */
     private void finishConnection(SelectionKey key){

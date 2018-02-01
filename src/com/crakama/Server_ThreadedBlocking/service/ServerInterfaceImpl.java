@@ -2,13 +2,12 @@ package com.crakama.Server_ThreadedBlocking.service;
 
 import com.crakama.Server_ThreadedBlocking.model.FileModel;
 import com.crakama.Server_ThreadedBlocking.net.ClientCommHandler;
-import com.crakama.Server_ThreadedBlocking.service.ServeInterface;
 
 import java.io.IOException;
 import java.net.Socket;
 import java.util.LinkedList;
 
-public class ServerInterfaceImpl  implements ServeInterface {
+public class ServerInterfaceImpl  implements ServerInterface {
 
     private int failedAttempts = 0;
     private int score = 0; // +=1 when user score and -=1 when server score
@@ -26,13 +25,14 @@ public class ServerInterfaceImpl  implements ServeInterface {
 
 
     @Override
-    public void initialiseGame(ClientCommHandler connectionHandler, Socket clientSocket) throws IOException, ClassNotFoundException {
+    public String initialiseGame(){
         String welcomeMessage = "Welcome to HangMan Game. I will pick a word and you will try to guess it character by character.\n" +
                 "If you guess wrong 6 times...I WIN! If you get the word before hand...YOU WIN!.\n" +
                 "Every time you guess a character incorrectly, the number of trials will reduce by one \n" +
                 "Every time you guess a character correctly, the letter will be filled in all its positions in the word\n\n";
 
-        connectionHandler.sendResponse(welcomeMessage+"\nInitial Game Set Up" + informationMessage());
+        //connectionHandler.sendResponse(welcomeMessage+"\nInitial Game Set Up" + informationMessage());
+        return welcomeMessage;
     }
 
 

@@ -1,7 +1,7 @@
-package com.crakama.Client.view;
+package com.crakama.client.view;
 
-import com.crakama.Client.net.OutputHandler;
-import com.crakama.Client.net.ServerCommHandler;
+import com.crakama.client.net.OutputHandler;
+import com.crakama.client.net.ServerCommHandler;
 import com.crakama.common.ConstantValues;
 
 import java.io.BufferedReader;

@@ -1,4 +1,4 @@
-package com.crakama.Client.net;
+package com.crakama.client.net;
 
 import java.net.InetSocketAddress;
 
