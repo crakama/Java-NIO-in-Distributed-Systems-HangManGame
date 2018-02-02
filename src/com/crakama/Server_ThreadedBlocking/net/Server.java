@@ -2,6 +2,7 @@ package com.crakama.Server_ThreadedBlocking.net;
 
 import com.crakama.Server_ThreadedBlocking.controller.Controller;
 import com.crakama.Server_ThreadedBlocking.service.ServerInterface;
+import com.crakama.Server_ThreadedBlocking.service.ServerInterfaceImpl;
 import com.crakama.common.ConstantValues;
 import com.crakama.common.MsgProcessor;
 import com.crakama.common.MsgType;
@@ -22,6 +23,7 @@ import java.util.StringJoiner;
 
 public class Server {
     private final Controller controller = new Controller();
+    private final ServerInterface serverInterface = new ServerInterfaceImpl();
     private Selector selector;
 
     /**
@@ -60,7 +62,7 @@ public class Server {
         socketChannel.configureBlocking(false);
         ClientCommHandler clientCommHandler = new ClientCommHandler(this,socketChannel);
         serverSocketChannel.register(selector,SelectionKey.OP_WRITE,
-                new Client(clientCommHandler,controller.initGameStaus()));
+                new Client(clientCommHandler,controller));
     }
     private void requestHandler(SelectionKey key) throws IOException {
         try {
@@ -99,11 +101,13 @@ public class Server {
 
     private class Client{
        private final Queue<ByteBuffer> queueGameStatus = new ArrayDeque();
-        private final ClientCommHandler commHandler;
-
-        private Client(ClientCommHandler clientCommHandler, String gameStatus){
+       private final ClientCommHandler commHandler;
+       private final String currentstatus;
+        private Client(ClientCommHandler clientCommHandler, Controller gameStatus) throws IOException, ClassNotFoundException {
             this.commHandler = clientCommHandler;
-            queueGameStatus.add(dataToBytes(gameStatus));
+            this.currentstatus = gameStatus.initGameStaus();
+            serverInterface.addController(gameStatus);
+            queueGameStatus.add(dataToBytes(currentstatus));
         }
 
 

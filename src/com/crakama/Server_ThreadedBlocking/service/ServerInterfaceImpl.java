@@ -1,11 +1,12 @@
 package com.crakama.Server_ThreadedBlocking.service;
 
+import com.crakama.Server_ThreadedBlocking.controller.Controller;
 import com.crakama.Server_ThreadedBlocking.model.FileModel;
-import com.crakama.Server_ThreadedBlocking.net.ClientCommHandler;
 
 import java.io.IOException;
-import java.net.Socket;
+import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.List;
 
 public class ServerInterfaceImpl  implements ServerInterface {
 
@@ -14,7 +15,7 @@ public class ServerInterfaceImpl  implements ServerInterface {
     private String currentWord;
     private String hiddenWord = new String();
     private LinkedList<String> guesses= new LinkedList<String>();
-
+    private final List<Controller> controllers = new ArrayList<>();
     public ServerInterfaceImpl(){
 
     }
@@ -25,15 +26,14 @@ public class ServerInterfaceImpl  implements ServerInterface {
 
 
     @Override
-    public String initialiseGame(){
+    public void initialiseGame(){
         String welcomeMessage = "Welcome to HangMan Game. I will pick a word and you will try to guess it character by character.\n" +
                 "If you guess wrong 6 times...I WIN! If you get the word before hand...YOU WIN!.\n" +
                 "Every time you guess a character incorrectly, the number of trials will reduce by one \n" +
                 "Every time you guess a character correctly, the letter will be filled in all its positions in the word\n +" +
                 "Type START to begin!\n";
 
-        //connectionHandler.sendResponse(welcomeMessage+"\nInitial Game Set Up" + informationMessage());
-        return welcomeMessage;
+        sendResponse(welcomeMessage+"\nInitial Game Set Up" + informationMessage());
     }
 
 
@@ -42,7 +42,7 @@ public class ServerInterfaceImpl  implements ServerInterface {
     public void playGame() throws IOException, ClassNotFoundException {
         generateNewWord();
         String s = "\n\nEnter a character that you think is in the word";
-        connHandler.sendResponse(":::Current Game Status:::" + informationMessage()+"\n" + "Current word picked is::::" + currentWord + s);
+        sendResponse(":::Current Game Status:::" + informationMessage()+"\n" + "Current word picked is::::" + currentWord + s);
 
         while (true) {
             String msg = connHandler.readRequest().getMsgBody();
@@ -69,24 +69,24 @@ public class ServerInterfaceImpl  implements ServerInterface {
                 if (!hiddenWord.contains("-")) {
                     ++this.score;
                     generateNewWord();
-                    connHandler.sendResponse("You win with " + failedAttempts + " number of fail attempts"+informationMessage());
+                    sendResponse("You win with " + failedAttempts + " number of fail attempts"+informationMessage());
 
                 } else {// default presentation
-                    connHandler.sendResponse(informationMessage() + "\n Enter a character that you think is in the word ");
+                    sendResponse(informationMessage() + "\n Enter a character that you think is in the word ");
                 }
 
             } else { // Wrong characther guess
                 if (++failedAttempts > currentWord.length()) {
-                    connHandler.sendResponse("You loose, the correct word was " + currentWord + " ");
+                    sendResponse("You loose, the correct word was " + currentWord + " ");
 
                     --this.score;//decrease score counter
 
                     generateNewWord();
 
                     //sends hidden word
-                    connHandler.sendResponse(informationMessage());
+                    sendResponse(informationMessage());
                 } else {
-                    connHandler.sendResponse(informationMessage());
+                    sendResponse(informationMessage());
 
                 }
             }
@@ -96,6 +96,13 @@ public class ServerInterfaceImpl  implements ServerInterface {
     }//while
     }
 
+    @Override
+    public void addController(Controller gameStatus) {
+        controllers.add(gameStatus);
+    }
+    public void sendResponse(String response){
+        controllers.get(0).updateGameStatus(response);
+    }
     /**
      * Generates a word that client shall guess on
      */

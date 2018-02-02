@@ -112,6 +112,7 @@ public class ServerCommHandler  implements Runnable{
               String msg = msgProcessor.nextMsg();
               displayMsg(msgProcessor.msgBody(msg));
            }
+           
        }
     }
 

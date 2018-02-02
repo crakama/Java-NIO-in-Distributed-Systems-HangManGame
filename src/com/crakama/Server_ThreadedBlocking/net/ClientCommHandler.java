@@ -9,9 +9,6 @@ import com.crakama.common.MsgType;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
-import java.util.ArrayDeque;
-import java.util.Queue;
-import java.util.StringJoiner;
 import java.util.concurrent.ForkJoinPool;
 
 public class ClientCommHandler implements Runnable{
@@ -22,7 +19,7 @@ public class ClientCommHandler implements Runnable{
     private ServerInterface serveInterface;
     public ClientCommHandler(Server server, SocketChannel socketChannel)  {
         this.socketChannel = socketChannel;
-        this.serveInterface = new ServerInterfaceImpl();
+        this.serveInterface = new ServerInterfaceImpl(this);
     }
 
     @Override
