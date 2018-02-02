@@ -2,12 +2,10 @@ package com.crakama.Server_ThreadedBlocking.net;
 
 import com.crakama.Server_ThreadedBlocking.controller.Controller;
 import com.crakama.Server_ThreadedBlocking.service.ServerInterface;
-import com.crakama.Server_ThreadedBlocking.service.ServerInterfaceImpl;
 import com.crakama.common.ConstantValues;
 import com.crakama.common.MsgProcessor;
 import com.crakama.common.MsgType;
 
-import javax.swing.*;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -22,12 +20,8 @@ import java.util.Iterator;
 import java.util.Queue;
 import java.util.StringJoiner;
 
-public class RequestHandler{
-    private Socket clientSocket;
+public class Server {
     private final Controller controller = new Controller();
-
-    private ServerInterface serverInterface;
-    private boolean gameInitialised = false;
     private Selector selector;
 
     /**
@@ -35,7 +29,7 @@ public class RequestHandler{
      * @param args
      */
     public static void main(String[] args) {
-        new RequestHandler().processRequests();
+        new Server().processRequests();
     }
 
     public void processRequests() {
@@ -68,7 +62,13 @@ public class RequestHandler{
         serverSocketChannel.register(selector,SelectionKey.OP_WRITE,
                 new Client(clientCommHandler,controller.initGameStaus()));
     }
-    private void requestHandler(SelectionKey key) {
+    private void requestHandler(SelectionKey key) throws IOException {
+        try {
+            Client client = (Client) key.attachment();
+            client.commHandler.receiveMsg();
+        }catch (IOException clientDisconnected){
+            removeClient(key);
+        }
     }
 
     private void responseHandler(SelectionKey key) throws IOException {
@@ -113,11 +113,11 @@ public class RequestHandler{
                 while (!queueGameStatus.isEmpty()){
                     msg = queueGameStatus.peek();
                     commHandler.sendMsg(msg);
+                    queueGameStatus.remove();
                 }
-
             }
-
         }
+
     }
 
     /**

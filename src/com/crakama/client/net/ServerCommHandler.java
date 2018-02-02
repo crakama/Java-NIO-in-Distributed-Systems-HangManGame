@@ -20,7 +20,7 @@ public class ServerCommHandler  implements Runnable{
     private InetSocketAddress serverAddress;
     private Map<SocketChannel, Queue<ByteBuffer>> pendindDataToSend = new HashMap();
     private final MsgProcessor msgProcessor = new MsgProcessor();
-    private ByteBuffer bufferedServerMsg = ByteBuffer.allocate(8192);
+    private ByteBuffer bufferedServerMsg = ByteBuffer.allocate(ConstantValues.BUFFER_SIZE);
     private List<OutputHandler> commListeners = new ArrayList<>();
     private List pendingChanges = new LinkedList();
     private boolean connected = false;
@@ -102,7 +102,7 @@ public class ServerCommHandler  implements Runnable{
        SocketChannel socketChannel = (SocketChannel) key.channel();
        int bytesRead = socketChannel.read(bufferedServerMsg);
        if(bytesRead == -1){
-           pendindDataToSend.remove(socketChannel);
+           //pendindDataToSend.remove(socketChannel);
            return;
        }
        if(bytesRead > 0){
@@ -110,7 +110,7 @@ public class ServerCommHandler  implements Runnable{
            msgProcessor.appendRecvdString(receivedData);
            while (msgProcessor.hasMsg()){
               String msg = msgProcessor.nextMsg();
-              displayMsg(MsgProcessor.msgBody(msg));
+              displayMsg(msgProcessor.msgBody(msg));
            }
        }
     }

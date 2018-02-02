@@ -9,5 +9,5 @@ public interface ServerInterface {
 
     String initialiseGame() throws IOException, ClassNotFoundException;
 
-    void playGame(ClientCommHandler connHandler) throws IOException, ClassNotFoundException;
+    void playGame() throws IOException, ClassNotFoundException;
 }

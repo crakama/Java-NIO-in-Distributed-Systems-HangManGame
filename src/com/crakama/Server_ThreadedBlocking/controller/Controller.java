@@ -12,4 +12,8 @@ public class Controller {
 
         return serverInterface.initialiseGame();
     }
+
+    public void playGame() throws IOException, ClassNotFoundException {
+        serverInterface.playGame();
+    }
 }

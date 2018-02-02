@@ -29,7 +29,8 @@ public class ServerInterfaceImpl  implements ServerInterface {
         String welcomeMessage = "Welcome to HangMan Game. I will pick a word and you will try to guess it character by character.\n" +
                 "If you guess wrong 6 times...I WIN! If you get the word before hand...YOU WIN!.\n" +
                 "Every time you guess a character incorrectly, the number of trials will reduce by one \n" +
-                "Every time you guess a character correctly, the letter will be filled in all its positions in the word\n\n";
+                "Every time you guess a character correctly, the letter will be filled in all its positions in the word\n +" +
+                "Type START to begin!\n";
 
         //connectionHandler.sendResponse(welcomeMessage+"\nInitial Game Set Up" + informationMessage());
         return welcomeMessage;
@@ -38,7 +39,7 @@ public class ServerInterfaceImpl  implements ServerInterface {
 
 
     @Override
-    public void playGame(ClientCommHandler connHandler) throws IOException, ClassNotFoundException {
+    public void playGame() throws IOException, ClassNotFoundException {
         generateNewWord();
         String s = "\n\nEnter a character that you think is in the word";
         connHandler.sendResponse(":::Current Game Status:::" + informationMessage()+"\n" + "Current word picked is::::" + currentWord + s);
