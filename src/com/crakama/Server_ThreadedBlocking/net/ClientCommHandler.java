@@ -19,7 +19,7 @@ public class ClientCommHandler implements Runnable{
     private ServerInterface serveInterface;
     public ClientCommHandler(Server server, SocketChannel socketChannel)  {
         this.socketChannel = socketChannel;
-        this.serveInterface = new ServerInterfaceImpl(this);
+        this.serveInterface = new ServerInterfaceImpl();
     }
 
     @Override
@@ -30,7 +30,6 @@ public class ClientCommHandler implements Runnable{
                 switch (msg.msgType){
 
                     case START:
-                        //serveInterface.initialiseGame(clientCommHandler,clientSocket);
                         gameInitialised = true;
                         break;
                     case PLAY:
@@ -38,6 +37,8 @@ public class ClientCommHandler implements Runnable{
                             serveInterface.playGame();
                         }
                         break;
+                    case GUESS:
+                        serveInterface.getGuess(msg.msgBody);
                     case STOP:
                         break;
 

@@ -103,10 +103,10 @@ public class Server {
        private final Queue<ByteBuffer> queueGameStatus = new ArrayDeque();
        private final ClientCommHandler commHandler;
        private final String currentstatus;
-        private Client(ClientCommHandler clientCommHandler, Controller gameStatus) throws IOException, ClassNotFoundException {
+        private Client(ClientCommHandler clientCommHandler, Controller contr) throws IOException, ClassNotFoundException {
             this.commHandler = clientCommHandler;
-            this.currentstatus = gameStatus.initGameStaus();
-            serverInterface.addController(gameStatus);
+            this.currentstatus = contr.gameStatus();
+            serverInterface.addController(contr);
             queueGameStatus.add(dataToBytes(currentstatus));
         }
 

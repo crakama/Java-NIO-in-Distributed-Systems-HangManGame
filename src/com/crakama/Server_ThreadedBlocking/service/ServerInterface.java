@@ -13,4 +13,6 @@ public interface ServerInterface {
     void playGame() throws IOException, ClassNotFoundException;
 
     void addController(Controller gameStatus);
+
+    void getGuess(String msgBody);
 }

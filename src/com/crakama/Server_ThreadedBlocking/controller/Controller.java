@@ -16,9 +16,9 @@ public class Controller {
 
     private final List<String> status = Collections.synchronizedList(new ArrayList<>());
 
-    public String initGameStaus() throws IOException, ClassNotFoundException {
+    public String gameStatus(){
 
-        return serverInterface.initialiseGame();
+        return String.valueOf(status);
     }
 
     public void updateGameStatus(String gameStatus){

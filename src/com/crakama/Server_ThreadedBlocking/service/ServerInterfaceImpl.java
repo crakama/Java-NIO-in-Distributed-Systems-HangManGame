@@ -13,6 +13,7 @@ public class ServerInterfaceImpl  implements ServerInterface {
     private int failedAttempts = 0;
     private int score = 0; // +=1 when user score and -=1 when server score
     private String currentWord;
+    private String currentGuess;
     private String hiddenWord = new String();
     private LinkedList<String> guesses= new LinkedList<String>();
     private final List<Controller> controllers = new ArrayList<>();
@@ -39,16 +40,29 @@ public class ServerInterfaceImpl  implements ServerInterface {
 
 
     @Override
-    public void playGame() throws IOException, ClassNotFoundException {
+    public void playGame() throws IOException {
         generateNewWord();
         String s = "\n\nEnter a character that you think is in the word";
-        sendResponse(":::Current Game Status:::" + informationMessage()+"\n" + "Current word picked is::::" + currentWord + s);
-
+        sendResponse(":::Current Game Status:::" + informationMessage()+"\n" +
+                "Current word picked is::::" + currentWord + s);
+        //function that returns something or guess
         while (true) {
-            String msg = connHandler.readRequest().getMsgBody();
+            String msg;
+            synchronized (guesses){
+                while (guesses.isEmpty()){
+                    try {
+                        guesses.wait();
+                    }catch (InterruptedException e){
+                        System.out.println("GUESS QUEUE IS EMPTY");
+                    }
+                }
+                //If guesse's queue has data
+                msg = guesses.peek();
+            }
+
             if (msg.length() == 1) {
 
-            guesses.add(msg);
+            //guesses.add(msg);
             if (currentWord.contains(msg.toUpperCase()) || currentWord.contains(msg.toLowerCase())) { // Hit on characther
                 StringBuilder str = new StringBuilder();
                 for (int i = 0; i < currentWord.length(); i++) {
@@ -100,6 +114,14 @@ public class ServerInterfaceImpl  implements ServerInterface {
     public void addController(Controller gameStatus) {
         controllers.add(gameStatus);
     }
+
+    @Override
+    public void getGuess(String msgBody) {
+            guesses.add(msgBody);
+
+
+    }
+
     public void sendResponse(String response){
         controllers.get(0).updateGameStatus(response);
     }
