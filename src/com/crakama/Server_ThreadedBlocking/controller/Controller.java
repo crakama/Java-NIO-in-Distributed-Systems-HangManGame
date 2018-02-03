@@ -1,7 +1,7 @@
 package com.crakama.Server_ThreadedBlocking.controller;
 
+import com.crakama.Server_ThreadedBlocking.net.Server;
 import com.crakama.Server_ThreadedBlocking.service.ServerInterface;
-import com.crakama.Server_ThreadedBlocking.service.ServerInterfaceImpl;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -15,14 +15,23 @@ public class Controller {
 
 
     private final List<String> status = Collections.synchronizedList(new ArrayList<>());
+    private ServerInterface serverInterface;
+    private Server server = new Server();
+    public Controller(ServerInterface serverInterface) {
+        this.serverInterface = serverInterface;
+    }
 
-    public String gameStatus(){
-
+    public String gameStatus() throws IOException, ClassNotFoundException {
+        if(status.isEmpty()){
+            return serverInterface.initialiseGame();
+        }
         return String.valueOf(status);
     }
 
     public void updateGameStatus(String gameStatus){
-        status.add(gameStatus);
+        //status.add(gameStatus);
+        server.send(gameStatus);
+        System.out.println("gameStatus" +gameStatus);
     }
 
 }

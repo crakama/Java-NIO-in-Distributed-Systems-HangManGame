@@ -18,7 +18,6 @@ public class ServerInterfaceImpl  implements ServerInterface {
     private LinkedList<String> guesses= new LinkedList<String>();
     private final List<Controller> controllers = new ArrayList<>();
     public ServerInterfaceImpl(){
-
     }
     /**
      * Randomly pick a word from a file and put in a variable wordPicked, use output stream to send it to client.
@@ -27,24 +26,26 @@ public class ServerInterfaceImpl  implements ServerInterface {
 
 
     @Override
-    public void initialiseGame(){
+    public String initialiseGame(){
         String welcomeMessage = "Welcome to HangMan Game. I will pick a word and you will try to guess it character by character.\n" +
                 "If you guess wrong 6 times...I WIN! If you get the word before hand...YOU WIN!.\n" +
                 "Every time you guess a character incorrectly, the number of trials will reduce by one \n" +
                 "Every time you guess a character correctly, the letter will be filled in all its positions in the word\n +" +
                 "Type START to begin!\n";
 
-        sendResponse(welcomeMessage+"\nInitial Game Set Up" + informationMessage());
+        //sendResponse(welcomeMessage+"\nInitial Game Set Up" + informationMessage());
+        return welcomeMessage;
     }
 
 
 
     @Override
-    public void playGame() throws IOException {
+    public void playGame(Controller contr) throws IOException {
         generateNewWord();
         String s = "\n\nEnter a character that you think is in the word";
-        sendResponse(":::Current Game Status:::" + informationMessage()+"\n" +
-                "Current word picked is::::" + currentWord + s);
+        contr.updateGameStatus(":::Current Game Status:::" + informationMessage()+"\n" +
+                "Current word picked is::::" + currentWord + s );
+
         //function that returns something or guess
         while (true) {
             String msg;
@@ -83,24 +84,24 @@ public class ServerInterfaceImpl  implements ServerInterface {
                 if (!hiddenWord.contains("-")) {
                     ++this.score;
                     generateNewWord();
-                    sendResponse("You win with " + failedAttempts + " number of fail attempts"+informationMessage());
+                    contr.updateGameStatus("You win with " + failedAttempts + " number of fail attempts"+informationMessage());
 
                 } else {// default presentation
-                    sendResponse(informationMessage() + "\n Enter a character that you think is in the word ");
+                    contr.updateGameStatus(informationMessage() + "\n Enter a character that you think is in the word ");
                 }
 
             } else { // Wrong characther guess
                 if (++failedAttempts > currentWord.length()) {
-                    sendResponse("You loose, the correct word was " + currentWord + " ");
+                    contr.updateGameStatus("You loose, the correct word was " + currentWord + " ");
 
                     --this.score;//decrease score counter
 
                     generateNewWord();
 
                     //sends hidden word
-                    sendResponse(informationMessage());
+                    contr.updateGameStatus(informationMessage());
                 } else {
-                    sendResponse(informationMessage());
+                    contr.updateGameStatus(informationMessage());
 
                 }
             }
@@ -122,9 +123,7 @@ public class ServerInterfaceImpl  implements ServerInterface {
 
     }
 
-    public void sendResponse(String response){
-        controllers.get(0).updateGameStatus(response);
-    }
+
     /**
      * Generates a word that client shall guess on
      */

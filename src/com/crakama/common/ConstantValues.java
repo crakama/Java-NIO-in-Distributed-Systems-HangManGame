@@ -4,11 +4,11 @@ public class ConstantValues {
     /**
      * Separates a message length header.
      */
-    public static final String MSG_LEN_DELIMETER = "#";
+    public static final String MSG_LEN_DELIMETER = "###";
     /**
      * Separates a message type from the message body.
      */
-    public static final String MSG_TYPE_DELIMETER = ",";
+    public static final String MSG_TYPE_DELIMETER = "##";
 
 
     public static final String NEXT = " Enter a command to proceed";
@@ -31,8 +31,8 @@ public class ConstantValues {
      */
     public static final int MSG_BODY_INDEX = 1;
 
-    public static final int REGISTERINTOPS = 1;
-    public static final int CHANGEINTOPS = 2;
+    public static final int REGISTER= 1;
+    public static final int WRITE = 2;
     public static final String FAILED_CONNECTION = "CONNECTION DID NOT FINISH!!!";
 
     public static int PORT_NUMBER = 1324;

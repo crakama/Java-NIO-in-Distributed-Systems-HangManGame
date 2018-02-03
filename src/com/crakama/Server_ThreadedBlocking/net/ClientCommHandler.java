@@ -1,5 +1,6 @@
 package com.crakama.Server_ThreadedBlocking.net;
 
+import com.crakama.Server_ThreadedBlocking.controller.Controller;
 import com.crakama.Server_ThreadedBlocking.service.ServerInterface;
 import com.crakama.Server_ThreadedBlocking.service.ServerInterfaceImpl;
 import com.crakama.common.ConstantValues;
@@ -16,10 +17,12 @@ public class ClientCommHandler implements Runnable{
     ByteBuffer bufferedClientMsg = ByteBuffer.allocateDirect(ConstantValues.BUFFER_SIZE);
     private final MsgProcessor msgProcessor = new MsgProcessor();
     private boolean gameInitialised = false;
+    private final Controller contr;
     private ServerInterface serveInterface;
-    public ClientCommHandler(Server server, SocketChannel socketChannel)  {
+    public ClientCommHandler(Controller controller, SocketChannel socketChannel)  {
         this.socketChannel = socketChannel;
         this.serveInterface = new ServerInterfaceImpl();
+        this.contr =controller;
     }
 
     @Override
@@ -33,9 +36,9 @@ public class ClientCommHandler implements Runnable{
                         gameInitialised = true;
                         break;
                     case PLAY:
-                        if(gameInitialised){
-                            serveInterface.playGame();
-                        }
+
+                            serveInterface.playGame(contr);
+
                         break;
                     case GUESS:
                         serveInterface.getGuess(msg.msgBody);
@@ -69,6 +72,7 @@ public class ClientCommHandler implements Runnable{
            throw new IOException("Server was unable Read From Client Socket");
        }
        String receivedMsg = readBufferData();
+       System.out.println("DATA RECEIVED"+receivedMsg);
        msgProcessor.appendRecvdString(receivedMsg);
         ForkJoinPool.commonPool().execute(this);
     }

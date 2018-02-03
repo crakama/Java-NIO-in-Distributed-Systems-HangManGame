@@ -32,13 +32,12 @@ public class CmdInterpreter implements Runnable{
                                 Integer.parseInt(cmdReader.getParameters(2)), new ServerResponse());
                         this.isConnected = true;
                         break;
-                    case START:
-                        if(this.isConnected = true){
-                            serverCommHandler.initialiseGame();
+                    case START: case PLAY:
+                        System.out.println("START");
+                        if(this.isConnected == true){
+                            System.out.println("START 2");
+                            serverCommHandler.playGame(cmdReader.getCmd());
                         }
-                    case PLAY:
-                        serverCommHandler.playGame();
-                        break;
                     case QUIT:
                         break;
                     default:
