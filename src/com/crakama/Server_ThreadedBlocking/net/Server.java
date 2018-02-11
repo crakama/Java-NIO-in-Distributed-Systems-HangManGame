@@ -5,13 +5,9 @@ import com.crakama.Server_ThreadedBlocking.service.ServerInterface;
 import com.crakama.Server_ThreadedBlocking.service.ServerInterfaceImpl;
 import com.crakama.common.ChangeInterestOPs;
 import com.crakama.common.ConstantValues;
-import com.crakama.common.MsgProcessor;
-import com.crakama.common.MsgType;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
@@ -48,7 +44,7 @@ public class Server {
                     ChangeInterestOPs changeInterestOPs = (ChangeInterestOPs) changedOPs.next();
 
                     switch (changeInterestOPs.opsType) {
-                        case ConstantValues.WRITE:
+                        case ConstantValues.READ_OR_WRITE:
                             SelectionKey key = changeInterestOPs.socketChannel.keyFor(this.selector);
                             key.interestOps(changeInterestOPs.ops);
                             break;
@@ -88,22 +84,27 @@ public class Server {
         ClientCommHandler clientCommHandler = new ClientCommHandler(controller,socketChannel);
         System.out.println("acceptHandler");
         socketChannel.register(selector,SelectionKey.OP_WRITE,
-                new Client(clientCommHandler,controller));
+                new ClientSession(socketChannel,clientCommHandler,controller,serverInterface));
     }
     private void requestHandler(SelectionKey key) throws IOException {
         try {
-            Client client = (Client) key.attachment();
-            client.commHandler.receiveMsg();
+            ClientSession clientSession = (ClientSession) key.attachment();
+            clientSession.commHandler.receiveMsg();
+            key.interestOps(SelectionKey.OP_WRITE);
         }catch (IOException clientDisconnected){
             removeClient(key);
         }
     }
 
-    private void responseHandler(SelectionKey key) throws IOException {
-        Client client = (Client) key.attachment();
+    private void responseHandler(SelectionKey key) throws IOException, ClassNotFoundException {
+        ClientSession clientSession = (ClientSession) key.attachment();
         try {
-        client.sendToClient();
-        key.interestOps(SelectionKey.OP_READ);
+        clientSession.sendToClient();
+        //key.interestOps(SelectionKey.OP_READ);
+            synchronized (this.updateInterestOPS){
+                updateInterestOPS.add(new ChangeInterestOPs(clientSession.channel,
+                        ConstantValues.READ_OR_WRITE,SelectionKey.OP_READ) );
+            }
         System.out.println("Server Operation changed to read");
         }catch (IOException clientDisconnected){
             removeClient(key);
@@ -111,8 +112,8 @@ public class Server {
 
     }
     private void removeClient(SelectionKey key) throws IOException {
-        Client client = (Client) key.attachment();
-        client.commHandler.disConnect();
+        ClientSession clientSession = (ClientSession) key.attachment();
+        clientSession.commHandler.disConnect();
     }
 
     private void initialiseServerChannel() throws IOException {
@@ -127,46 +128,18 @@ public class Server {
     }
 
     public void send(String gameStatus) {
-
+        //Include client object
+        //Call  method(updateQueue)to add data to client's queue
+        //use change ops to change interest ops to write
     }
 
-    private class Client{
-       private final Queue<ByteBuffer> queueGameStatus = new ArrayDeque();
-       private final ClientCommHandler commHandler;
-
-        private Client(ClientCommHandler clientCommHandler, Controller contr) throws IOException, ClassNotFoundException {
-            this.commHandler = clientCommHandler;
-            System.out.println("sendToClient "+ contr.gameStatus());
-            queueGameStatus.add(dataToBytes(contr.gameStatus()));
-            serverInterface.addController(contr);
-        }
-
-
-        public void sendToClient() throws IOException {
-            synchronized (queueGameStatus){
-                ByteBuffer msg;
-                while (!queueGameStatus.isEmpty()){
-                    msg = queueGameStatus.peek();
-                    System.out.println("sendToClient "+ msg.toString());
-                    commHandler.sendMsg(msg);
-                    queueGameStatus.remove();
-                }
-            }
-        }
-
+    public void wakeUpSelector() {
+        //call pending changes and chane operation to write
+        //Wake up selector
+        selector.wakeup();
     }
 
-    /**
-     * Convert data to bytes
-     * @param gameStatus
-     * @return
-     */
-    private ByteBuffer dataToBytes(String gameStatus) {
-        StringJoiner joiner = new StringJoiner(ConstantValues.MSG_TYPE_DELIMETER);
-        joiner.add(MsgType.RESPONSE.toString());
-        joiner.add(gameStatus);
-        String addMsgHeader = MsgProcessor.appendLenHeader(joiner.toString());
-        return ByteBuffer.wrap(addMsgHeader.getBytes());
-    }
+
+
 
 }

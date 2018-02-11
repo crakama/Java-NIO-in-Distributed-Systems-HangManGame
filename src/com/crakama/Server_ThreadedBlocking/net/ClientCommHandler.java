@@ -33,10 +33,9 @@ public class ClientCommHandler implements Runnable{
                 switch (msg.msgType){
 
                     case START:
-                        gameInitialised = true;
+
                         break;
                     case PLAY:
-
                             serveInterface.playGame(contr);
 
                         break;
@@ -57,7 +56,7 @@ public class ClientCommHandler implements Runnable{
     public void sendMsg(ByteBuffer msg) throws IOException {
         socketChannel.write(msg);
         if(msg.hasRemaining()){
-            throw new IOException("Data Not Sent to Client!!!");
+            throw new IOException("Data Not Sent to ClientSession!!!");
         }
     }
 
@@ -68,8 +67,9 @@ public class ClientCommHandler implements Runnable{
     public void receiveMsg() throws IOException {
        bufferedClientMsg.clear();
        int data = socketChannel.read(bufferedClientMsg);
+
        while(data == -1){
-           throw new IOException("Server was unable Read From Client Socket");
+           throw new IOException("Server was unable Read From ClientSession Socket");
        }
        String receivedMsg = readBufferData();
        System.out.println("DATA RECEIVED"+receivedMsg);

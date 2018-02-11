@@ -54,6 +54,7 @@ public class CmdInterpreter implements Runnable{
     private String requestHandler() throws IOException {
             this.bufferedReader = new BufferedReader(new InputStreamReader(System.in));
             String readBuffer = bufferedReader.readLine();
+
             return readBuffer;
         }
 

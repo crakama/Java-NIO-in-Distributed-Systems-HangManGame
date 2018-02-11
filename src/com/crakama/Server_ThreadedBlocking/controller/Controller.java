@@ -4,34 +4,36 @@ import com.crakama.Server_ThreadedBlocking.net.Server;
 import com.crakama.Server_ThreadedBlocking.service.ServerInterface;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.nio.ByteBuffer;
+import java.util.*;
 
 public class Controller {
     /**
      * @thhis, passed to Impl class in order to access methods defined here
      */
 
-
-    private final List<String> status = Collections.synchronizedList(new ArrayList<>());
+    private final Queue<ByteBuffer> status = new ArrayDeque();
+   // private final List<String> status = Collections.synchronizedList(new ArrayList<>());
     private ServerInterface serverInterface;
-    private Server server = new Server();
     public Controller(ServerInterface serverInterface) {
         this.serverInterface = serverInterface;
     }
 
     public String gameStatus() throws IOException, ClassNotFoundException {
+        System.out.println("CONTROLLER STATUS" +status.toString());
         if(status.isEmpty()){
             return serverInterface.initialiseGame();
         }
-        return String.valueOf(status);
+        String gStatus = String.valueOf(status);
+        status.remove();
+        return gStatus;
     }
 
     public void updateGameStatus(String gameStatus){
-        //status.add(gameStatus);
-        server.send(gameStatus);
-        System.out.println("gameStatus" +gameStatus);
+        status.add(ByteBuffer.wrap(gameStatus.getBytes()));
+
+        //server.send(gameStatus);
+       // System.out.println("gameStatus" +gameStatus);
     }
 
 }

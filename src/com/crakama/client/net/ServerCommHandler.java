@@ -19,7 +19,8 @@ import java.util.concurrent.ForkJoinPool;
 
 public class ServerCommHandler  implements Runnable{
     private InetSocketAddress serverAddress;
-    private Map<SocketChannel, Queue<ByteBuffer>> pendindDataToSend = new HashMap();
+    //private Map<SocketChannel, Queue<ByteBuffer>> pendindDataToSend = new HashMap();
+    private final Queue<ByteBuffer> pendindDataToSend = new ArrayDeque<>();
     private final MsgProcessor msgProcessor = new MsgProcessor();
     private ByteBuffer bufferedServerMsg = ByteBuffer.allocate(ConstantValues.BUFFER_SIZE);
     private List<OutputHandler> commListeners = new ArrayList<>();
@@ -43,14 +44,17 @@ public class ServerCommHandler  implements Runnable{
             while(connected){
 
                 synchronized (this.pendingChanges) {
+                    System.out.println("Pending Changes ");
                     Iterator changes = this.pendingChanges.iterator();
                     while (changes.hasNext()) {
+                        System.out.println("Pending Changes hasNext()");
                         ChangeInterestOPs changeInterestOPs = (ChangeInterestOPs) changes.next();
 
                         switch (changeInterestOPs.opsType) {
-                            case ConstantValues.WRITE:
-                                SelectionKey key = changeInterestOPs.socketChannel.keyFor(this.selector);
+                            case ConstantValues.READ_OR_WRITE:
+                                SelectionKey key = changeInterestOPs.socketChannel.keyFor(selector);
                                 key.interestOps(changeInterestOPs.ops);
+                                System.out.println("ConstantValues.WRITE: changeInterestOPs CHANGED");
                                 break;
                             case ConstantValues.REGISTER:
                                 changeInterestOPs.socketChannel.register(this.selector, changeInterestOPs.ops);
@@ -59,31 +63,38 @@ public class ServerCommHandler  implements Runnable{
                     }
                     this.pendingChanges.clear();
                 }
-                System.out.println("Selector client");
-                this.selector.select();
-                Iterator selectedKeys = this.selector.selectedKeys().iterator();
+                System.out.println("Selector client BEFORE ");
+                selector.select();
+                System.out.println("Selector client AFTER");
+                Iterator selectedKeys = selector.selectedKeys().iterator();
+                System.out.println("Selector client hasNext() BEFORE");
                 while (selectedKeys.hasNext()){
+                    System.out.println("Selector client hasNext() AFTER");
                     SelectionKey key = (SelectionKey) selectedKeys.next();
                     selectedKeys.remove();
 
                     if(!key.isValid()){
+                        System.out.println("Selector client isValid");
                         continue;
                     }
                     if(key.isConnectable()){
                         finishConnection(key);
+
                     }else if(key.isReadable()){
                         System.out.println("Selector client isReadable");
                         receiveMsg(key);
+
                     }else if(key.isWritable()){
                         System.out.println("Selector client isWritable");
                         sendMsg(key);
+                        //readInterest();
                     }
                 }
             }
         } catch (IOException e) {
             e.printStackTrace();
         }catch (Throwable connectionFailure){
-           // outputHandler.handleErrorResponse(connectionFailure);
+            // outputHandler.handleErrorResponse(connectionFailure);
         }
     }
 
@@ -111,30 +122,30 @@ public class ServerCommHandler  implements Runnable{
         }
     }
     private void receiveMsg(SelectionKey key) throws IOException {
-       SocketChannel socketChannel = (SocketChannel) key.channel();
-       int bytesRead = socketChannel.read(bufferedServerMsg);
-       if(bytesRead == -1){
-           //pendindDataToSend.remove(socketChannel);
-           //return;
-           System.out.println("bytesRead == -1");
-       }
-       if(bytesRead > 0){
-           System.out.println("bytesRead > 0");
-           String receivedData = readBufferData();
-           System.out.println("bytesRead > 0"+receivedData);
-           msgProcessor.appendRecvdString(receivedData);
-           System.out.println("msgProcessor.receivedData"+ receivedData);
-           while (msgProcessor.hasMsg()){
-               System.out.println("msgProcessor.hasMsg()");
-              String msg = msgProcessor.nextMsg();
-               System.out.println("msgProcessor.hasMsg()"+msgProcessor.msgBody(msg));
-              displayMsg(msgProcessor.msgBody(msg));
-           }
-       }
+        bufferedServerMsg.clear();
+        SocketChannel socketChannel = (SocketChannel) key.channel();
+        int bytesRead = socketChannel.read(bufferedServerMsg);
+        if(bytesRead == -1){
+            //pendindDataToSend.remove(socketChannel);
+            //return;
+            System.out.println("bytesRead == -1");
+        }
+        if(bytesRead > 0){
+            System.out.println("bytesRead > 0");
+            String receivedData = readBufferData();
+            System.out.println("bytesRead > 0"+receivedData);
+            msgProcessor.appendRecvdString(receivedData);
+            System.out.println("msgProcessor.receivedData"+ receivedData);
+            while (msgProcessor.hasMsg()){
+                System.out.println("msgProcessor.hasMsg()");
+                String msg = msgProcessor.nextMsg();
+                System.out.println("msgProcessor.hasMsg()"+msgProcessor.msgBody(msg));
+                displayMsg(msgProcessor.msgBody(msg));
+            }
+        }
     }
 
     private void displayMsg(String msg) {
-        System.out.println("Display Msg" + msg);
         Executor forkPool = ForkJoinPool.commonPool();
         for(OutputHandler listener: commListeners){
             forkPool.execute(() -> listener.handleServerResponse(msg));
@@ -161,28 +172,57 @@ public class ServerCommHandler  implements Runnable{
      */
 
     public void sendMsg(SelectionKey key) throws IOException {
-        SocketChannel socketChannel = (SocketChannel)key.channel();
-        synchronized (pendindDataToSend){
-            Queue<ByteBuffer> queue = this.pendindDataToSend.get(socketChannel);
-            if(queue.isEmpty()){
-                key.interestOps(SelectionKey.OP_READ);
-            }
-            while (!queue.isEmpty()){
-                ByteBuffer dataBuf = queue.peek();
-                int written = socketChannel.write(dataBuf);
-                System.out.println("send data to server" + dataBuf.toString());
-                if(written == -1){
-                    pendindDataToSend.remove(socketChannel);
-                    socketChannel.close();
-                }
-                if(dataBuf.hasRemaining()){
+        socketChannel = (SocketChannel)key.channel();
+        ByteBuffer msg;
+        synchronized (pendindDataToSend) {
+            while ((msg = pendindDataToSend.peek()) != null) {
+                socketChannel.write(msg);
+                if (msg.hasRemaining()) {
                     return;
-                }else {
-                    queue.remove();
                 }
+                pendindDataToSend.remove();
             }
+            key.interestOps(SelectionKey.OP_READ);
         }
+
+//            Queue<ByteBuffer> queue = this.pendindDataToSend.get(socketChannel);
+//            ByteBuffer dataBuf = queue.peek();
+//        synchronized (pendindDataToSend){
+//            while (dataBuf != null){
+//                System.out.println("In Loop");
+//
+//                int written = socketChannel.write(dataBuf);
+//                System.out.println("send data to server" + dataBuf.toString());
+//                if(written == -1){
+//                    System.out.println("written == -1,socket to close" + dataBuf.toString());
+//                    socketChannel.close();
+//                    pendindDataToSend.remove(socketChannel);
+//                    return;
+//                }
+//                if(dataBuf.hasRemaining()){
+//                    System.out.println("dataBuf.hasRemaining()" + dataBuf.toString());
+//                    return;
+//                }
+//                queue.remove();
+//
+//            }
+//        }
+
     }
+
+    //    private void sendToServer(SelectionKey key) throws IOException {
+//        ByteBuffer msg;
+//        synchronized (messagesToSend) {
+//            while ((msg = messagesToSend.peek()) != null) {
+//                socketChannel.write(msg);
+//                if (msg.hasRemaining()) {
+//                    return;
+//                }
+//                messagesToSend.remove();
+//            }
+//            key.interestOps(SelectionKey.OP_READ);
+//        }
+//    }
     public void connect(String host, int port,OutputHandler outputHandler) throws IOException {
         this.serverAddress = new InetSocketAddress(host,port);
         this.commListeners.add(outputHandler);
@@ -214,10 +254,25 @@ public class ServerCommHandler  implements Runnable{
     public void playGame(CmdType cmd) throws IOException {
         if(cmd.equals("START")){
             encodeMsg(MsgType.START.toString(),null);
+
         }else{
             encodeMsg(MsgType.PLAY.toString(),null);
         }
 
+    }
+
+    /**
+     * Interest OPs can only be changed by selecting thread , thus the need to have stand alone methods
+     * to do the work.
+     */
+    public void readInterest(){
+        synchronized (this.pendingChanges){
+            //socketChannel Might result to null pointer
+            pendingChanges.add(new ChangeInterestOPs(socketChannel,
+                    ConstantValues.READ_OR_WRITE,SelectionKey.OP_READ));
+            System.out.println("Data saved to buffer, ConstantValues changed to READ ");
+        }
+        selector.wakeup();
     }
 
     /**
@@ -239,22 +294,16 @@ public class ServerCommHandler  implements Runnable{
     public void addToBuffer(String encodedMsg){
         synchronized (pendindDataToSend){
             System.out.println("pending data to send");
-            Queue<ByteBuffer> fromQueue,toQueue;
-            fromQueue =  this.pendindDataToSend.get(socketChannel);
-            if(fromQueue == null){
-                System.out.println("Queue empty");
-                fromQueue = new ArrayDeque<>();
-                this.pendindDataToSend.put(socketChannel,fromQueue);
-            }
+
             System.out.println("Before add to queue" + encodedMsg);
-            fromQueue.add(ByteBuffer.wrap(encodedMsg.getBytes()));
+            pendindDataToSend.add(ByteBuffer.wrap(encodedMsg.getBytes()));
             System.out.println("after add to queue" + encodedMsg);
         }
         synchronized (this.pendingChanges){
             //socketChannel Might result to null pointer
             pendingChanges.add(new ChangeInterestOPs(socketChannel,
-                    ConstantValues.WRITE,SelectionKey.OP_WRITE));
-            System.out.println("Data saved to buffer");
+                    ConstantValues.READ_OR_WRITE,SelectionKey.OP_WRITE));
+            System.out.println("Data saved to buffer, ConstantValues changed to WRITE ");
         }
     }
     //TO DO Wake up the selector and check variable

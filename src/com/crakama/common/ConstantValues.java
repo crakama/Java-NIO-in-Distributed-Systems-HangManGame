@@ -32,9 +32,9 @@ public class ConstantValues {
     public static final int MSG_BODY_INDEX = 1;
 
     public static final int REGISTER= 1;
-    public static final int WRITE = 2;
+    public static final int READ_OR_WRITE = 2;
     public static final String FAILED_CONNECTION = "CONNECTION DID NOT FINISH!!!";
 
-    public static int PORT_NUMBER = 1324;
+    public static int PORT_NUMBER = 1302;
     public static final int BUFFER_SIZE = 1892;
 }

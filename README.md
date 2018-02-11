@@ -2,7 +2,7 @@
 
 A simple java system that uses TCP sockets for communication. Its consists of several parts:
 
-* Multithreaded commandline client app
+* Multithreaded commandline clientSession app
   - Socket Channels
   - Selector Keys
   - Interactive commandline interface
