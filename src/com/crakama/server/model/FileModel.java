@@ -1,4 +1,4 @@
-package com.crakama.Server_ThreadedBlocking.model;
+package com.crakama.server.model;
 
 import java.io.BufferedReader;
 import java.io.File;

@@ -1,28 +1,29 @@
-package com.crakama.Server_ThreadedBlocking.net;
+package com.crakama.server.net;
 
-import com.crakama.Server_ThreadedBlocking.controller.Controller;
-import com.crakama.Server_ThreadedBlocking.service.ServerInterface;
-import com.crakama.Server_ThreadedBlocking.service.ServerInterfaceImpl;
 import com.crakama.common.ConstantValues;
 import com.crakama.common.MsgProcessor;
 import com.crakama.common.MsgType;
+import com.crakama.server.service.ServerInterface;
+import com.crakama.server.service.ServerInterfaceImpl;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ForkJoinPool;
 
 public class ClientCommHandler implements Runnable{
-    private SocketChannel socketChannel;
     ByteBuffer bufferedClientMsg = ByteBuffer.allocateDirect(ConstantValues.BUFFER_SIZE);
     private final MsgProcessor msgProcessor = new MsgProcessor();
+    Queue<ClientSession> session = new ConcurrentLinkedQueue();
+    private SocketChannel socketChannel;
     private boolean gameInitialised = false;
-    private final Controller contr;
     private ServerInterface serveInterface;
-    public ClientCommHandler(Controller controller, SocketChannel socketChannel)  {
+    public ClientCommHandler(ServerInterface serverInterface, SocketChannel socketChannel)  {
         this.socketChannel = socketChannel;
-        this.serveInterface = new ServerInterfaceImpl();
-        this.contr =controller;
+        this.serveInterface = serverInterface;
+
     }
 
     @Override
@@ -32,12 +33,8 @@ public class ClientCommHandler implements Runnable{
             try{
                 switch (msg.msgType){
 
-                    case START:
-
-                        break;
-                    case PLAY:
-                            serveInterface.playGame(contr);
-
+                    case START: case PLAY:
+                        serveInterface.playGame(session.poll());
                         break;
                     case GUESS:
                         serveInterface.getGuess(msg.msgBody);
@@ -64,16 +61,18 @@ public class ClientCommHandler implements Runnable{
         socketChannel.close();
     }
 
-    public void receiveMsg() throws IOException {
-       bufferedClientMsg.clear();
-       int data = socketChannel.read(bufferedClientMsg);
+    public void receiveMsg(ClientSession clientSession) throws IOException {
+        session.add(clientSession);
+        bufferedClientMsg.clear();
+        int data = socketChannel.read(bufferedClientMsg);
 
-       while(data == -1){
-           throw new IOException("Server was unable Read From ClientSession Socket");
-       }
-       String receivedMsg = readBufferData();
-       System.out.println("DATA RECEIVED"+receivedMsg);
-       msgProcessor.appendRecvdString(receivedMsg);
+        while(data == -1){
+            throw new IOException("Server was unable Read From ClientSession Socket");
+        }
+        String receivedMsg = readBufferData();
+        System.out.println("DATA RECEIVED"+receivedMsg);
+        msgProcessor.appendRecvdString(receivedMsg);
+
         ForkJoinPool.commonPool().execute(this);
     }
     /**
@@ -96,11 +95,11 @@ public class ClientCommHandler implements Runnable{
         }
 
         private void decodeMsg(String parts){
-           String[] msgParts =  parts.split(ConstantValues.MSG_TYPE_DELIMETER);
-           if(msgParts.length > 1){
-               msgType = MsgType.valueOf(msgParts[ConstantValues.MSG_TYPE_INDEX].toUpperCase());
-               msgBody = msgParts[ConstantValues.MSG_BODY_INDEX].trim();
-           }
+            String[] msgParts =  parts.split(ConstantValues.MSG_TYPE_DELIMETER);
+            if(msgParts.length > 1){
+                msgType = MsgType.valueOf(msgParts[ConstantValues.MSG_TYPE_INDEX].toUpperCase());
+                msgBody = msgParts[ConstantValues.MSG_BODY_INDEX].trim();
+            }
 
         }
     }

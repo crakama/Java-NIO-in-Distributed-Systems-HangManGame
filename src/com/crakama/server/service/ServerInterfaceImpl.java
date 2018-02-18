@@ -1,12 +1,12 @@
-package com.crakama.Server_ThreadedBlocking.service;
+package com.crakama.server.service;
 
-import com.crakama.Server_ThreadedBlocking.controller.Controller;
-import com.crakama.Server_ThreadedBlocking.model.FileModel;
+import com.crakama.server.model.FileModel;
+import com.crakama.server.net.ClientSession;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.LinkedList;
-import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class ServerInterfaceImpl  implements ServerInterface {
 
@@ -16,13 +16,16 @@ public class ServerInterfaceImpl  implements ServerInterface {
     private String currentGuess;
     private String hiddenWord = new String();
     private LinkedList<String> guesses= new LinkedList<String>();
-    private final List<Controller> controllers = new ArrayList<>();
+    //private final List<GameStatusListener> listeners = new <>();
+    private Queue<GameStatusListener> slisteners;
     public ServerInterfaceImpl(){
+
     }
     /**
      * Randomly pick a word from a file and put in a variable wordPicked, use output stream to send it to client.
      * @throws
      */
+
 
 
     @Override
@@ -33,17 +36,16 @@ public class ServerInterfaceImpl  implements ServerInterface {
                 "Every time you guess a character correctly, the letter will be filled in all its positions in the word\n +" +
                 "Type START to begin!\n";
 
-        //sendResponse(welcomeMessage+"\nInitial Game Set Up" + informationMessage());
+        //contr.updateGameStatus(welcomeMessage+"\nInitial Game Set Up" + informationMessage());
         return welcomeMessage;
     }
 
 
-
     @Override
-    public void playGame(Controller contr) throws IOException {
+    public void playGame(ClientSession clientSession) throws IOException {
         generateNewWord();
         String s = "\n\nEnter a character that you think is in the word";
-        contr.updateGameStatus(":::Current Game Status:::" + informationMessage()+"\n" +
+        updateGameStatus(clientSession,":::Current Game Status:::" + informationMessage()+"\n" +
                 "Current word picked is::::" + currentWord + s );
 
         //function that returns something or guess
@@ -84,24 +86,24 @@ public class ServerInterfaceImpl  implements ServerInterface {
                 if (!hiddenWord.contains("-")) {
                     ++this.score;
                     generateNewWord();
-                    contr.updateGameStatus("You win with " + failedAttempts + " number of fail attempts"+informationMessage());
+                    updateGameStatus(clientSession, "You win with " + failedAttempts + " number of fail attempts"+informationMessage());
 
                 } else {// default presentation
-                    contr.updateGameStatus(informationMessage() + "\n Enter a character that you think is in the word ");
+                    updateGameStatus(clientSession, informationMessage() + "\n Enter a character that you think is in the word ");
                 }
 
             } else { // Wrong characther guess
                 if (++failedAttempts > currentWord.length()) {
-                    contr.updateGameStatus("You loose, the correct word was " + currentWord + " ");
+                    updateGameStatus(clientSession, "You loose, the correct word was " + currentWord + " ");
 
                     --this.score;//decrease score counter
 
                     generateNewWord();
 
                     //sends hidden word
-                    contr.updateGameStatus(informationMessage());
+                    updateGameStatus(clientSession, informationMessage());
                 } else {
-                    contr.updateGameStatus(informationMessage());
+                    updateGameStatus(clientSession, informationMessage());
 
                 }
             }
@@ -111,9 +113,19 @@ public class ServerInterfaceImpl  implements ServerInterface {
     }//while
     }
 
-    @Override
-    public void addController(Controller gameStatus) {
-        controllers.add(gameStatus);
+    private void updateGameStatus(ClientSession clientSession, String gStatus){
+        System.out.println("Listener Look Up");
+        GameStatusListener lis;
+        if( (lis = slisteners.poll())!= null){
+            System.out.println("Listener if BEFORE found");
+            lis.gameStatus(clientSession,gStatus);
+            System.out.println("Listener if found");
+        }
+        System.out.println("Listener if empty");
+//        for (GameStatusListener listener:listeners ){
+//            System.out.println("Listener Found");
+//            listener.gameStatus(clientSession,gStatus);
+//        }
     }
 
     @Override
@@ -121,6 +133,13 @@ public class ServerInterfaceImpl  implements ServerInterface {
             guesses.add(msgBody);
 
 
+    }
+
+    @Override
+    public void addGameStatusListener(Queue<GameStatusListener> listeners, GameStatusListener gameOutPut) {
+        this.slisteners= listeners;
+        this.slisteners.add(gameOutPut);
+        System.out.println("Listener Added : "  + this.slisteners.peek());
     }
 
 

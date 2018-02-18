@@ -1,4 +1,4 @@
-package com.crakama.Server_ThreadedBlocking.model;
+package com.crakama.server.model;
 
 public interface ReadFileInterface {
     void readFile();

@@ -1,10 +1,10 @@
-package com.crakama.Server_ThreadedBlocking.net;
+package com.crakama.server.net;
 
-import com.crakama.Server_ThreadedBlocking.controller.Controller;
-import com.crakama.Server_ThreadedBlocking.service.ServerInterface;
+
 import com.crakama.common.ConstantValues;
 import com.crakama.common.MsgProcessor;
 import com.crakama.common.MsgType;
+import com.crakama.server.service.ServerInterface;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -16,20 +16,19 @@ import java.util.StringJoiner;
 /**
  * Holds client sessions
  */
-class ClientSession {
+public class ClientSession {
     private final Queue<ByteBuffer> queueGameStatus = new ArrayDeque();
     public final ClientCommHandler commHandler;
-    private final Controller contr;
     public final SocketChannel channel;
+    private ServerInterface serverInterface;
 
     public ClientSession(SocketChannel socketChannel, ClientCommHandler clientCommHandler,
-                         Controller contr, ServerInterface serverInterface) throws
-                  IOException, ClassNotFoundException {
+                         ServerInterface serverInterface) throws
+            IOException, ClassNotFoundException {
         this.commHandler = clientCommHandler;
-        this.contr=contr;
         this.channel = socketChannel;
-        serverInterface.addController(contr);
-        processQueue();
+        this.serverInterface = serverInterface;
+        initQueue(serverInterface);
     }
 
 
@@ -37,21 +36,19 @@ class ClientSession {
      * Always check for new status from model and service layer
      * @throws IOException
      * @throws ClassNotFoundException
+     * @param serverInterface
      */
-    public void processQueue() throws IOException, ClassNotFoundException {
+    public void initQueue(ServerInterface serverInterface) throws IOException, ClassNotFoundException {
 
         synchronized (queueGameStatus){
             System.out.println("BEFORE processQueue New data to LOCAL QUEUE ");
-            String getStatus = contr.gameStatus();
-            System.out.println("MIDDLE processQueue New data to LOCAL QUEUE "+getStatus);
-            queueGameStatus.add(dataToBytes(getStatus));
+            queueGameStatus.add(dataToBytes(serverInterface.initialiseGame()));
             System.out.println("AFTER processQueue New data to LOCAL QUEUE ");
         }
 
     }
     public void sendToClient() throws IOException, ClassNotFoundException {
         System.out.println("sendToClient ");
-        processQueue();
         synchronized (queueGameStatus){
             ByteBuffer msg;
             while(queueGameStatus.isEmpty()) {
@@ -62,7 +59,7 @@ class ClientSession {
                 }
             }
             msg = queueGameStatus.peek();
-            System.out.println("sendToClient "+ msg.toString());
+            System.out.println("sendToClient msg.peek"+ msg.toString());
             commHandler.sendMsg(msg);
             queueGameStatus.remove();
         }
@@ -80,4 +77,9 @@ class ClientSession {
         return ByteBuffer.wrap(addMsgHeader.getBytes());
     }
 
+    public void addToQueue(String gameGame) {
+        synchronized (queueGameStatus){
+            queueGameStatus.add(dataToBytes(gameGame));
+        }
+    }
 }
