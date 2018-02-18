@@ -50,8 +50,6 @@ public class Server {
                 }
 
                selector.select();
-                // processSelectorActions(selectorActions);
-                System.out.println("Selector Block");
                 Iterator<SelectionKey> iterator = selector.selectedKeys().iterator();
                 while(iterator.hasNext()){
                     SelectionKey key = iterator.next();
@@ -60,10 +58,8 @@ public class Server {
                     if(key.isAcceptable()){
                         acceptHandler(key);
                     }else if(key.isReadable()){
-                        System.out.println("isReadable");
                         requestHandler(key);
                     }else if(key.isWritable()){
-                        System.out.println("isWritable");
                         responseHandler(key); }
                 }
             }
@@ -85,7 +81,6 @@ public class Server {
     private void updateClientQueue(SelectionKey selectionKey) {
         ClientSession cSession = (ClientSession) selectionKey.attachment();
         String gameGame = gameStatusUpdate.get(selectionKey);
-        System.out.println("Value retrieved from GQueue Successfully" +gameGame);
         cSession.addToQueue(gameGame);
     }
 
@@ -95,7 +90,6 @@ public class Server {
         socketChannel.configureBlocking(false);
 
         ClientCommHandler clientCommHandler = new ClientCommHandler(serverInterface,socketChannel);
-        System.out.println("acceptHandler");
         socketChannel.register(selector,SelectionKey.OP_WRITE,
                 new ClientSession(socketChannel,clientCommHandler,serverInterface));
     }
@@ -103,18 +97,16 @@ public class Server {
         try {
             ClientSession clientSession = (ClientSession) key.attachment();
             clientSession.commHandler.receiveMsg(key);
-            System.out.println("serverInterestOPs.opsType" + clientSession);
         }catch (IOException clientDisconnected){
             removeClient(key);
         }
     }
 
-    private void responseHandler(SelectionKey key) throws IOException, ClassNotFoundException {
+    private void responseHandler(SelectionKey key) throws IOException{
         ClientSession clientSession = (ClientSession) key.attachment();
         try {
             clientSession.sendToClient();
             key.interestOps(SelectionKey.OP_READ);
-            System.out.println("Server Operation changed to read");
         }catch (IOException clientDisconnected){
             removeClient(key);
         }
@@ -142,25 +134,21 @@ public class Server {
         //Updated by thread pool
         @Override
         public void gameStatus(SelectionKey clientSeckey, String status) {
-            System.out.println("Listener if found: " +clientSeckey+"gstatus >>"+status);
-
             gameStatusUpdate.put(clientSeckey,status);
             newGameStatus = true;
-           // synchronized (updateInterestOPS){
-
                 updateInterestOPS.add(clientSeckey );
                 selector.wakeup();
-           // }
-//            selectorActions.add(() -> clientSeckey.interestOps(SelectionKey.OP_WRITE));
-//            clientSeckey.selector().wakeup();
         }
     }
-
-    private static void processSelectorActions(Queue<Runnable> selectorActions) {
-        Runnable action;
-        while((action = selectorActions.poll()) != null) {
-            action.run();
-        }
-    }
-
 }
+
+    /*
+        Queue<Runnable> selectorActions = new ConcurrentLinkedQueue<>();
+        private static void interestOPs(Queue<Runnable> selectorActions) {
+            Runnable action;
+            while((action = interests.poll()) != null) {
+                action.run();
+            }
+            selectorActions.add(() -> key.interestOps(SelectionKey.OP_WRITE));
+        }
+    */

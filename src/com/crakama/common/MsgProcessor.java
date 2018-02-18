@@ -48,17 +48,13 @@ public class MsgProcessor {
             return false;
         }
         String lengthHeader = msgSplits[0];
-        System.out.println("lengthHeader" +msgSplits[0]);
         String actualMsg = msgSplits[1];
 
         int expectedMsgLen = Integer.parseInt(lengthHeader);
-        System.out.println("expectedMsgLen" +expectedMsgLen);
         int receivedMsgLen = Integer.parseInt(String.valueOf(actualMsg.length()));
-        System.out.println("receivedMsgLen" +receivedMsgLen);
 
         if (receivedMsgLen >= expectedMsgLen) {
             String completeMsg = actualMsg.substring(0,expectedMsgLen);
-            System.out.println("completeMsg" +completeMsg);
             completeMsgs.add(completeMsg);
             recvdMsgParts.delete(0, lengthHeader.length()
                     + ConstantValues.MSG_LEN_DELIMETER.length() + expectedMsgLen);

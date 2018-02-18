@@ -6,15 +6,18 @@ import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class ServerInterfaceImpl  implements ServerInterface {
 
     private int failedAttempts = 0;
     private int score = 0; // +=1 when user score and -=1 when server score
     private String currentWord;
-    private String currentGuess;
     private String hiddenWord = new String();
-    private LinkedList<String> guesses= new LinkedList<String>();
+    BlockingQueue<String> guesses = new ArrayBlockingQueue<>(20);
+    private LinkedList<String> currentGuess= new LinkedList<String>();
     private Queue<GameStatusListener> slisteners;
     public ServerInterfaceImpl(){
 
@@ -33,8 +36,6 @@ public class ServerInterfaceImpl  implements ServerInterface {
                 "Every time you guess a character incorrectly, the number of trials will reduce by one \n" +
                 "Every time you guess a character correctly, the letter will be filled in all its positions in the word\n +" +
                 "Type START to begin!\n";
-
-        //contr.updateGameStatus(welcomeMessage+"\nInitial Game Set Up" + informationMessage());
         return welcomeMessage;
     }
 
@@ -45,79 +46,76 @@ public class ServerInterfaceImpl  implements ServerInterface {
         String s = "\n\nEnter a character that you think is in the word";
         updateGameStatus(clientSessionKey,":::Current Game Status:::" + informationMessage()+"\n" +
                 "Current word picked is::::" + currentWord + s );
-
-        //function that returns something or guess
         while (true) {
-            String msg;
-            synchronized (guesses){
-                while (guesses.isEmpty()){
-                    try {
-                        guesses.wait();
-                    }catch (InterruptedException e){
-                        System.out.println("GUESS QUEUE IS EMPTY");
-                    }
-                }
-                //If guesse's queue has data
-                msg = guesses.peek();
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
+            String msg;
+            try {
+                if ((msg = guesses.take()) != null) {
 
-            if (msg.length() == 1) {
+                if (msg.length() == 1) {
 
-            //guesses.add(msg);
-            if (currentWord.contains(msg.toUpperCase()) || currentWord.contains(msg.toLowerCase())) { // Hit on characther
-                StringBuilder str = new StringBuilder();
-                for (int i = 0; i < currentWord.length(); i++) {
+                    currentGuess.add(msg);
+                    if (currentWord.contains(msg.toUpperCase()) || currentWord.contains(msg.toLowerCase())) { // Hit on characther
+                        StringBuilder str = new StringBuilder();
+                        for (int i = 0; i < currentWord.length(); i++) {
 
-                    //If i character is matching at index position
-                    if (currentWord.substring(i, i + 1).equalsIgnoreCase(msg.substring(0, 1))) {
+                            //If i character is matching at index position
+                            if (currentWord.substring(i, i + 1).equalsIgnoreCase(msg.substring(0, 1))) {
 
-                        str.append(msg.substring(0, 1).toLowerCase());
-                    } else {//No char at position i+1 after 1st round of loop
-                        if (hiddenWord.charAt(i) != '-') {
-                            str.append(hiddenWord.charAt(i));
+                                str.append(msg.substring(0, 1).toLowerCase());
+                            } else {//No char at position i+1 after 1st round of loop
+                                if (hiddenWord.charAt(i) != '-') {
+                                    str.append(hiddenWord.charAt(i));
+                                } else {
+                                    str.append("-");
+                                }
+                            }
+                        }
+                        hiddenWord = str.toString();
+                        if (!hiddenWord.contains("-")) {
+                            ++this.score;
+                            //generateNewWord();
+                            updateGameStatus(clientSessionKey, "You win with " + failedAttempts + " number of fail attempts" + informationMessage());
+
+                        } else {// default presentation
+                            updateGameStatus(clientSessionKey, informationMessage() + "\n Enter a character that you think is in the word ");
+                        }
+
+                    } else { // Wrong characther guess
+                        if (++failedAttempts > currentWord.length()) {
+                            updateGameStatus(clientSessionKey, "You loose, the correct word was " + currentWord + " ");
+
+                            --this.score;//decrease score counter
+
+                            generateNewWord();
+
+                            //sends hidden word
+                            updateGameStatus(clientSessionKey, informationMessage());
                         } else {
-                            str.append("-");
+                            updateGameStatus(clientSessionKey, informationMessage());
+
                         }
                     }
-                }
-                hiddenWord = str.toString();
-                if (!hiddenWord.contains("-")) {
-                    ++this.score;
-                    generateNewWord();
-                    updateGameStatus(clientSessionKey, "You win with " + failedAttempts + " number of fail attempts"+informationMessage());
-
-                } else {// default presentation
-                    updateGameStatus(clientSessionKey, informationMessage() + "\n Enter a character that you think is in the word ");
-                }
-
-            } else { // Wrong characther guess
-                if (++failedAttempts > currentWord.length()) {
-                    updateGameStatus(clientSessionKey, "You loose, the correct word was " + currentWord + " ");
-
-                    --this.score;//decrease score counter
-
-                    generateNewWord();
-
-                    //sends hidden word
-                    updateGameStatus(clientSessionKey, informationMessage());
                 } else {
-                    updateGameStatus(clientSessionKey, informationMessage());
-
+                    System.out.println("Full Word guessed");
                 }
+            }else {
+                    System.out.println("No Guesses found");
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
-        }else{
-                System.out.println("Full Word guessed");
-            }
-    }//while
+        }//while
     }
 
     private void updateGameStatus(SelectionKey cKey, String gStatus){
-        System.out.println("Listener Look Up");
         GameStatusListener lis;
         if( (lis = slisteners.poll())!= null){
-            System.out.println("Listener if BEFORE found");
             lis.gameStatus(cKey,gStatus);
-           // System.out.println("Listener if found: " +clientSession+"gstatus >>"+gStatus);
         }
     }
 
@@ -125,27 +123,24 @@ public class ServerInterfaceImpl  implements ServerInterface {
     public void getGuess(String msgBody) {
             guesses.add(msgBody);
 
-
     }
 
     @Override
     public void addGameStatusListener(Queue<GameStatusListener> listeners, GameStatusListener gameOutPut) {
         this.slisteners= listeners;
         this.slisteners.add(gameOutPut);
-        System.out.println("Listener Added : "  + this.slisteners.peek());
     }
 
 
     /**
      * Generates a word that client shall guess on
      */
-    private void generateNewWord() throws IOException {
+    private void generateNewWord(){
         FileModel fileModel = new FileModel();
-        guesses.clear(); //Empty guesses
+        currentGuess.clear(); //Empty guesses
         fileModel.readFile();
         failedAttempts = 0;
         currentWord = fileModel.pickWord();
-        System.out.println("thread with id : "  + " get word: " + currentWord);
 
         /*** Hide characters in word***/
         StringBuilder str = new StringBuilder();
@@ -156,17 +151,13 @@ public class ServerInterfaceImpl  implements ServerInterface {
         /***                         ***/
     }
 
-
-
-
-
     /**
      *
      * @return - A suitible string to display in client console
      */
     private String informationMessage(){
         StringBuilder g = new StringBuilder();
-        for(String str : guesses){
+        for(String str : currentGuess){
             g.append(str + " ");
         }
         return "\nWord : " + hiddenWord + " \n(Length=" + hiddenWord.length()  + ")"+

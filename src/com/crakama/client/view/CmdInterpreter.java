@@ -33,9 +33,7 @@ public class CmdInterpreter implements Runnable{
                         this.isConnected = true;
                         break;
                     case START: case PLAY:
-                        System.out.println("START");
                         if(this.isConnected == true){
-                            System.out.println("START 2");
                             serverCommHandler.playGame(cmdReader.getCmd());
                         }
                     case QUIT:
@@ -63,12 +61,6 @@ public class CmdInterpreter implements Runnable{
         @Override
         public void handleServerResponse(String receivedMessage) {
             System.out.println(ConstantValues.MSG_START + receivedMessage+
-                    ConstantValues.MSG_END);
-        }
-
-        @Override
-        public void handleErrorResponse(Throwable connectionFailure) {
-            System.out.println(ConstantValues.MSG_START + connectionFailure+
                     ConstantValues.MSG_END);
         }
 

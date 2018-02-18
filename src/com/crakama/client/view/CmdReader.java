@@ -49,9 +49,6 @@ class CmdReader {
         return cmd;
     }
 
-    String getUserInput(){
-        return userCommand;
-    }
 
 
 }

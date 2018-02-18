@@ -41,25 +41,20 @@ public class ClientSession {
     public void initQueue(ServerInterface serverInterface) throws IOException, ClassNotFoundException {
 
         synchronized (queueGameStatus){
-            System.out.println("BEFORE processQueue New data to LOCAL QUEUE ");
             queueGameStatus.add(dataToBytes(serverInterface.initialiseGame()));
-            System.out.println("AFTER processQueue New data to LOCAL QUEUE ");
         }
 
     }
-    public void sendToClient() throws IOException, ClassNotFoundException {
-        System.out.println("sendToClient ");
+    public void sendToClient() throws IOException{
         synchronized (queueGameStatus){
             ByteBuffer msg;
             while(queueGameStatus.isEmpty()) {
                 try {
-                    System.out.println("isEmpty ");
                     queueGameStatus.wait();
                 } catch (InterruptedException e) {
                 }
             }
             msg = queueGameStatus.peek();
-            System.out.println("sendToClient msg.peek"+ msg.toString());
             commHandler.sendMsg(msg);
             queueGameStatus.remove();
         }
@@ -79,7 +74,6 @@ public class ClientSession {
 
     public void addToQueue(String gameGame) {
         synchronized (queueGameStatus){
-            System.out.println("add to LQueue"+ gameGame);
             queueGameStatus.add(dataToBytes(gameGame));
         }
     }

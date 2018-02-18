@@ -4,7 +4,6 @@ import com.crakama.common.ConstantValues;
 import com.crakama.common.MsgProcessor;
 import com.crakama.common.MsgType;
 import com.crakama.server.service.ServerInterface;
-import com.crakama.server.service.ServerInterfaceImpl;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -19,7 +18,6 @@ public class ClientCommHandler implements Runnable{
     private final MsgProcessor msgProcessor = new MsgProcessor();
     Queue<SelectionKey> sessionkeys = new ConcurrentLinkedQueue();
     private SocketChannel socketChannel;
-    private boolean gameInitialised = false;
     private ServerInterface serveInterface;
     public ClientCommHandler(ServerInterface serverInterface, SocketChannel socketChannel)  {
         this.socketChannel = socketChannel;
@@ -71,7 +69,6 @@ public class ClientCommHandler implements Runnable{
             throw new IOException("Server was unable Read From ClientSession Socket");
         }
         String receivedMsg = readBufferData();
-        System.out.println("DATA RECEIVED"+receivedMsg);
         msgProcessor.appendRecvdString(receivedMsg);
 
         ForkJoinPool.commonPool().execute(this);
