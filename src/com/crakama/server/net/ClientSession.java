@@ -79,6 +79,7 @@ public class ClientSession {
 
     public void addToQueue(String gameGame) {
         synchronized (queueGameStatus){
+            System.out.println("add to LQueue"+ gameGame);
             queueGameStatus.add(dataToBytes(gameGame));
         }
     }

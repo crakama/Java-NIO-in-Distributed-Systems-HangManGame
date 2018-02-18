@@ -16,7 +16,6 @@ public class ServerInterfaceImpl  implements ServerInterface {
     private String currentGuess;
     private String hiddenWord = new String();
     private LinkedList<String> guesses= new LinkedList<String>();
-    //private final List<GameStatusListener> listeners = new <>();
     private Queue<GameStatusListener> slisteners;
     public ServerInterfaceImpl(){
 
@@ -119,13 +118,8 @@ public class ServerInterfaceImpl  implements ServerInterface {
         if( (lis = slisteners.poll())!= null){
             System.out.println("Listener if BEFORE found");
             lis.gameStatus(clientSession,gStatus);
-            System.out.println("Listener if found");
+           // System.out.println("Listener if found: " +clientSession+"gstatus >>"+gStatus);
         }
-        System.out.println("Listener if empty");
-//        for (GameStatusListener listener:listeners ){
-//            System.out.println("Listener Found");
-//            listener.gameStatus(clientSession,gStatus);
-//        }
     }
 
     @Override
