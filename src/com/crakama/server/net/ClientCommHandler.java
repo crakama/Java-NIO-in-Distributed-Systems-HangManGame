@@ -8,6 +8,7 @@ import com.crakama.server.service.ServerInterfaceImpl;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -16,7 +17,7 @@ import java.util.concurrent.ForkJoinPool;
 public class ClientCommHandler implements Runnable{
     ByteBuffer bufferedClientMsg = ByteBuffer.allocateDirect(ConstantValues.BUFFER_SIZE);
     private final MsgProcessor msgProcessor = new MsgProcessor();
-    Queue<ClientSession> session = new ConcurrentLinkedQueue();
+    Queue<SelectionKey> sessionkeys = new ConcurrentLinkedQueue();
     private SocketChannel socketChannel;
     private boolean gameInitialised = false;
     private ServerInterface serveInterface;
@@ -34,7 +35,7 @@ public class ClientCommHandler implements Runnable{
                 switch (msg.msgType){
 
                     case START: case PLAY:
-                        serveInterface.playGame(session.poll());
+                        serveInterface.playGame(sessionkeys.poll());
                         break;
                     case GUESS:
                         serveInterface.getGuess(msg.msgBody);
@@ -61,8 +62,8 @@ public class ClientCommHandler implements Runnable{
         socketChannel.close();
     }
 
-    public void receiveMsg(ClientSession clientSession) throws IOException {
-        session.add(clientSession);
+    public void receiveMsg(SelectionKey key) throws IOException {
+        sessionkeys.add(key);
         bufferedClientMsg.clear();
         int data = socketChannel.read(bufferedClientMsg);
 

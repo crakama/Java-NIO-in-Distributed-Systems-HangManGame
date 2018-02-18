@@ -1,12 +1,11 @@
 package com.crakama.server.service;
 
 import com.crakama.server.model.FileModel;
-import com.crakama.server.net.ClientSession;
 
 import java.io.IOException;
+import java.nio.channels.SelectionKey;
 import java.util.LinkedList;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class ServerInterfaceImpl  implements ServerInterface {
 
@@ -41,10 +40,10 @@ public class ServerInterfaceImpl  implements ServerInterface {
 
 
     @Override
-    public void playGame(ClientSession clientSession) throws IOException {
+    public void playGame(SelectionKey clientSessionKey) throws IOException {
         generateNewWord();
         String s = "\n\nEnter a character that you think is in the word";
-        updateGameStatus(clientSession,":::Current Game Status:::" + informationMessage()+"\n" +
+        updateGameStatus(clientSessionKey,":::Current Game Status:::" + informationMessage()+"\n" +
                 "Current word picked is::::" + currentWord + s );
 
         //function that returns something or guess
@@ -85,24 +84,24 @@ public class ServerInterfaceImpl  implements ServerInterface {
                 if (!hiddenWord.contains("-")) {
                     ++this.score;
                     generateNewWord();
-                    updateGameStatus(clientSession, "You win with " + failedAttempts + " number of fail attempts"+informationMessage());
+                    updateGameStatus(clientSessionKey, "You win with " + failedAttempts + " number of fail attempts"+informationMessage());
 
                 } else {// default presentation
-                    updateGameStatus(clientSession, informationMessage() + "\n Enter a character that you think is in the word ");
+                    updateGameStatus(clientSessionKey, informationMessage() + "\n Enter a character that you think is in the word ");
                 }
 
             } else { // Wrong characther guess
                 if (++failedAttempts > currentWord.length()) {
-                    updateGameStatus(clientSession, "You loose, the correct word was " + currentWord + " ");
+                    updateGameStatus(clientSessionKey, "You loose, the correct word was " + currentWord + " ");
 
                     --this.score;//decrease score counter
 
                     generateNewWord();
 
                     //sends hidden word
-                    updateGameStatus(clientSession, informationMessage());
+                    updateGameStatus(clientSessionKey, informationMessage());
                 } else {
-                    updateGameStatus(clientSession, informationMessage());
+                    updateGameStatus(clientSessionKey, informationMessage());
 
                 }
             }
@@ -112,12 +111,12 @@ public class ServerInterfaceImpl  implements ServerInterface {
     }//while
     }
 
-    private void updateGameStatus(ClientSession clientSession, String gStatus){
+    private void updateGameStatus(SelectionKey cKey, String gStatus){
         System.out.println("Listener Look Up");
         GameStatusListener lis;
         if( (lis = slisteners.poll())!= null){
             System.out.println("Listener if BEFORE found");
-            lis.gameStatus(clientSession,gStatus);
+            lis.gameStatus(cKey,gStatus);
            // System.out.println("Listener if found: " +clientSession+"gstatus >>"+gStatus);
         }
     }

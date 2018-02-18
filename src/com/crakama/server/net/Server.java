@@ -20,8 +20,9 @@ public class Server {
 
     private final ServerInterface serverInterface = new ServerInterfaceImpl();
     Queue<GameStatusListener> listeners;
-    Map<ClientSession, String> gameStatusUpdate = new ConcurrentHashMap<>();
-    private List updateInterestOPS = new LinkedList();
+    Map<SelectionKey, String> gameStatusUpdate = new ConcurrentHashMap<>();
+    Queue<SelectionKey> updateInterestOPS = new ConcurrentLinkedQueue<>();
+    private volatile boolean newGameStatus = false;
     private Selector selector;
 
     /**
@@ -41,29 +42,16 @@ public class Server {
 
             while (true){
                 serverInterface.addGameStatusListener(listeners, new GameOutPut());
-                synchronized (this.updateInterestOPS) {
-                    Iterator changedOPs = this.updateInterestOPS.iterator();
-                    //? Save session to a list
-                    while (changedOPs.hasNext()) {
-                        ServerInterestOPs serverInterestOPs = (ServerInterestOPs) changedOPs.next();
-                        ClientSession cSession = serverInterestOPs.getSession();
-                        System.out.println("serverInterestOPs.opsType" + cSession);
-                        updateClientQueue(cSession);
-                        System.out.println("serverInterestOPs.opsType");
-                        switch (serverInterestOPs.opsType) {
-                            case ConstantValues.READ_OR_WRITE:
-                                SelectionKey key = cSession.channel.keyFor(this.selector);
-                                key.interestOps(serverInterestOPs.getOPs());
-                                break;
-                            case ConstantValues.REGISTER:
-                                cSession.channel.register(this.selector, serverInterestOPs.getOPs());
-                                break;
-                        }
-                    }
-                    this.updateInterestOPS.clear();
+                if(newGameStatus){
+                    SelectionKey interestOPsKey = updateInterestOPS.poll();//TODO: gameStatusUpdate.poll()
+                    updateClientQueue(interestOPsKey); //TODO: Save session and value in the same queue
+                    prepareWrite(interestOPsKey);
+                    newGameStatus = false;
                 }
 
-                selector.select();
+               selector.select();
+                // processSelectorActions(selectorActions);
+                System.out.println("Selector Block");
                 Iterator<SelectionKey> iterator = selector.selectedKeys().iterator();
                 while(iterator.hasNext()){
                     SelectionKey key = iterator.next();
@@ -85,12 +73,18 @@ public class Server {
 
     }
 
+    private void prepareWrite(SelectionKey interestOPsKey) {
+        interestOPsKey.interestOps(SelectionKey.OP_WRITE);
+    }
+
     /**
-     *
-     * @param cSession retrieves data from global queue and appends to client local queue
+     * Status already in global Queue, interestOps is WRITE and selector is up
+     * @param selectionKey retrieves Clients session OBJ
+     *  Append data from global queue to client local queue
      */
-    private void updateClientQueue(ClientSession cSession) {
-        String gameGame = gameStatusUpdate.get(cSession);
+    private void updateClientQueue(SelectionKey selectionKey) {
+        ClientSession cSession = (ClientSession) selectionKey.attachment();
+        String gameGame = gameStatusUpdate.get(selectionKey);
         System.out.println("Value retrieved from GQueue Successfully" +gameGame);
         cSession.addToQueue(gameGame);
     }
@@ -108,7 +102,7 @@ public class Server {
     private void requestHandler(SelectionKey key) throws IOException {
         try {
             ClientSession clientSession = (ClientSession) key.attachment();
-            clientSession.commHandler.receiveMsg(clientSession);
+            clientSession.commHandler.receiveMsg(key);
             System.out.println("serverInterestOPs.opsType" + clientSession);
         }catch (IOException clientDisconnected){
             removeClient(key);
@@ -119,11 +113,7 @@ public class Server {
         ClientSession clientSession = (ClientSession) key.attachment();
         try {
             clientSession.sendToClient();
-            //key.interestOps(SelectionKey.OP_READ);
-            synchronized (this.updateInterestOPS){
-                updateInterestOPS.add(new ServerInterestOPs(clientSession,
-                        ConstantValues.READ_OR_WRITE,SelectionKey.OP_READ) );
-            }
+            key.interestOps(SelectionKey.OP_READ);
             System.out.println("Server Operation changed to read");
         }catch (IOException clientDisconnected){
             removeClient(key);
@@ -151,14 +141,25 @@ public class Server {
 
         //Updated by thread pool
         @Override
-        public void gameStatus(ClientSession clientSession,String status) {
-            System.out.println("Listener if found: " +clientSession+"gstatus >>"+status);
-            gameStatusUpdate.put(clientSession,status);
-            synchronized (updateInterestOPS){
-                updateInterestOPS.add(new ServerInterestOPs(clientSession,
-                        ConstantValues.READ_OR_WRITE,SelectionKey.OP_WRITE) );
-            }
-            selector.wakeup();
+        public void gameStatus(SelectionKey clientSeckey, String status) {
+            System.out.println("Listener if found: " +clientSeckey+"gstatus >>"+status);
+
+            gameStatusUpdate.put(clientSeckey,status);
+            newGameStatus = true;
+           // synchronized (updateInterestOPS){
+
+                updateInterestOPS.add(clientSeckey );
+                selector.wakeup();
+           // }
+//            selectorActions.add(() -> clientSeckey.interestOps(SelectionKey.OP_WRITE));
+//            clientSeckey.selector().wakeup();
+        }
+    }
+
+    private static void processSelectorActions(Queue<Runnable> selectorActions) {
+        Runnable action;
+        while((action = selectorActions.poll()) != null) {
+            action.run();
         }
     }
 
