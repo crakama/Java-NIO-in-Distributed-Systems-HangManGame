@@ -13,17 +13,16 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class Server {
 
     private final ServerInterface serverInterface = new ServerInterfaceImpl();
-    Queue<GameStatusListener> listeners;
-    Map<SelectionKey, String> gameStatusUpdate = new ConcurrentHashMap<>();
+    Queue<String> gameStatusUpdate = new ConcurrentLinkedQueue<>();
     Queue<SelectionKey> updateInterestOPS = new ConcurrentLinkedQueue<>();
     private volatile boolean newGameStatus = false;
     private Selector selector;
+
 
     /**
      * Main server thread that handles incoming client requests
@@ -35,20 +34,15 @@ public class Server {
     }
 
     public void processRequests() {
-        this.listeners = new ConcurrentLinkedQueue<>();
+        ///this.listeners = new ConcurrentLinkedQueue<>();
         try{
             this.selector = initialiseSelector();
             initialiseServerChannel();
-
             while (true){
-                serverInterface.addGameStatusListener(listeners, new GameOutPut());
                 if(newGameStatus){
-                    SelectionKey interestOPsKey = updateInterestOPS.poll();//TODO: gameStatusUpdate.poll()
-                    updateClientQueue(interestOPsKey); //TODO: Save session and value in the same queue
-                    prepareWrite(interestOPsKey);
+                    updateClientQueue();
                     newGameStatus = false;
                 }
-
                selector.select();
                 Iterator<SelectionKey> iterator = selector.selectedKeys().iterator();
                 while(iterator.hasNext()){
@@ -69,26 +63,24 @@ public class Server {
 
     }
 
-    private void prepareWrite(SelectionKey interestOPsKey) {
-        interestOPsKey.interestOps(SelectionKey.OP_WRITE);
-    }
-
     /**
      * Status already in global Queue, interestOps is WRITE and selector is up
-     * @param selectionKey retrieves Clients session OBJ
+     * selectionKey retrieves Clients session OBJ
      *  Append data from global queue to client local queue
      */
-    private void updateClientQueue(SelectionKey selectionKey) {
-        ClientSession cSession = (ClientSession) selectionKey.attachment();
-        String gameGame = gameStatusUpdate.get(selectionKey);
+    private void updateClientQueue() {
+        SelectionKey interestOPsKey = updateInterestOPS.poll();
+        ClientSession cSession = (ClientSession) interestOPsKey.attachment();
+        String gameGame = gameStatusUpdate.poll();
         cSession.addToQueue(gameGame);
+        interestOPsKey.interestOps(SelectionKey.OP_WRITE);
     }
 
     private void acceptHandler(SelectionKey key) throws IOException, ClassNotFoundException {
         ServerSocketChannel serverSocketChannel = (ServerSocketChannel) key.channel();
         SocketChannel socketChannel = serverSocketChannel.accept();
         socketChannel.configureBlocking(false);
-
+        serverInterface.addGameStatusListener(new ConcurrentLinkedQueue<>(), new GameOutPut());
         ClientCommHandler clientCommHandler = new ClientCommHandler(serverInterface,socketChannel);
         socketChannel.register(selector,SelectionKey.OP_WRITE,
                 new ClientSession(socketChannel,clientCommHandler,serverInterface));
@@ -134,14 +126,13 @@ public class Server {
         //Updated by thread pool
         @Override
         public void gameStatus(SelectionKey clientSeckey, String status) {
-            gameStatusUpdate.put(clientSeckey,status);
+            gameStatusUpdate.add(status);
             newGameStatus = true;
-                updateInterestOPS.add(clientSeckey );
-                selector.wakeup();
+            updateInterestOPS.add(clientSeckey );
+            selector.wakeup();
         }
     }
 }
-
     /*
         Queue<Runnable> selectorActions = new ConcurrentLinkedQueue<>();
         private static void interestOPs(Queue<Runnable> selectorActions) {

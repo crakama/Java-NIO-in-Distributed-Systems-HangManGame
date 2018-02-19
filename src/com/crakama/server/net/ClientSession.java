@@ -4,6 +4,7 @@ package com.crakama.server.net;
 import com.crakama.common.ConstantValues;
 import com.crakama.common.MsgProcessor;
 import com.crakama.common.MsgType;
+import com.crakama.server.net.ClientCommHandler;
 import com.crakama.server.service.ServerInterface;
 
 import java.io.IOException;
@@ -49,10 +50,7 @@ public class ClientSession {
         synchronized (queueGameStatus){
             ByteBuffer msg;
             while(queueGameStatus.isEmpty()) {
-                try {
-                    queueGameStatus.wait();
-                } catch (InterruptedException e) {
-                }
+                System.out.println("Message to client empty");
             }
             msg = queueGameStatus.peek();
             commHandler.sendMsg(msg);

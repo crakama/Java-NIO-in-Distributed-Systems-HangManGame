@@ -33,10 +33,13 @@ public class ClientCommHandler implements Runnable{
                 switch (msg.msgType){
 
                     case START: case PLAY:
-                        serveInterface.playGame(sessionkeys.poll());
+                        SelectionKey ky = sessionkeys.poll();
+                        serveInterface.playGame(ky);
                         break;
                     case GUESS:
-                        serveInterface.getGuess(msg.msgBody);
+                        SelectionKey kyg = sessionkeys.poll();
+                        serveInterface.getGuess(kyg,msg.msgBody);
+
                     case STOP:
                         break;
 

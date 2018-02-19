@@ -3,11 +3,14 @@ package com.crakama.server.service;
 import com.crakama.server.model.FileModel;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
+import java.nio.channels.SocketChannel;
+import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Queue;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class ServerInterfaceImpl  implements ServerInterface {
@@ -16,8 +19,8 @@ public class ServerInterfaceImpl  implements ServerInterface {
     private int score = 0; // +=1 when user score and -=1 when server score
     private String currentWord;
     private String hiddenWord = new String();
-    BlockingQueue<String> guesses = new ArrayBlockingQueue<>(20);
     private LinkedList<String> currentGuess= new LinkedList<String>();
+   Map<SelectionKey,String> guess=new HashMap<SelectionKey,String>();
     private Queue<GameStatusListener> slisteners;
     public ServerInterfaceImpl(){
 
@@ -46,87 +49,87 @@ public class ServerInterfaceImpl  implements ServerInterface {
         String s = "\n\nEnter a character that you think is in the word";
         updateGameStatus(clientSessionKey,":::Current Game Status:::" + informationMessage()+"\n" +
                 "Current word picked is::::" + currentWord + s );
+        String msg;
         while (true) {
-            try {
-                Thread.sleep(500);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            String msg;
-            try {
-                if ((msg = guesses.take()) != null) {
 
-                if (msg.length() == 1) {
+            if ((msg = guess.get(clientSessionKey))!= null) {
+                guess.remove(clientSessionKey);
+            if (msg.length() == 1) {
 
-                    currentGuess.add(msg);
-                    if (currentWord.contains(msg.toUpperCase()) || currentWord.contains(msg.toLowerCase())) { // Hit on characther
-                        StringBuilder str = new StringBuilder();
-                        for (int i = 0; i < currentWord.length(); i++) {
+                currentGuess.add(msg);
+                if (currentWord.contains(msg.toUpperCase()) || currentWord.contains(msg.toLowerCase())) { // Hit on characther
+                    StringBuilder str = new StringBuilder();
+                    for (int i = 0; i < currentWord.length(); i++) {
 
-                            //If i character is matching at index position
-                            if (currentWord.substring(i, i + 1).equalsIgnoreCase(msg.substring(0, 1))) {
+                        //If i character is matching at index position
+                        if (currentWord.substring(i, i + 1).equalsIgnoreCase(msg.substring(0, 1))) {
 
-                                str.append(msg.substring(0, 1).toLowerCase());
-                            } else {//No char at position i+1 after 1st round of loop
-                                if (hiddenWord.charAt(i) != '-') {
-                                    str.append(hiddenWord.charAt(i));
-                                } else {
-                                    str.append("-");
-                                }
+                            str.append(msg.substring(0, 1).toLowerCase());
+                        } else {//No char at position i+1 after 1st round of loop
+                            if (hiddenWord.charAt(i) != '-') {
+                                str.append(hiddenWord.charAt(i));
+                            } else {
+                                str.append("-");
                             }
                         }
-                        hiddenWord = str.toString();
-                        if (!hiddenWord.contains("-")) {
-                            ++this.score;
-                            //generateNewWord();
-                            updateGameStatus(clientSessionKey, "You win with " + failedAttempts + " number of fail attempts" + informationMessage());
-
-                        } else {// default presentation
-                            updateGameStatus(clientSessionKey, informationMessage() + "\n Enter a character that you think is in the word ");
-                        }
-
-                    } else { // Wrong characther guess
-                        if (++failedAttempts > currentWord.length()) {
-                            updateGameStatus(clientSessionKey, "You loose, the correct word was " + currentWord + " ");
-
-                            --this.score;//decrease score counter
-
-                            generateNewWord();
-
-                            //sends hidden word
-                            updateGameStatus(clientSessionKey, informationMessage());
-                        } else {
-                            updateGameStatus(clientSessionKey, informationMessage());
-
-                        }
                     }
-                } else {
-                    System.out.println("Full Word guessed");
+                    hiddenWord = str.toString();
+                    if (!hiddenWord.contains("-")) {
+                        ++this.score;
+                        //generateNewWord();
+                        updateGameStatus(clientSessionKey, "You win with " + failedAttempts + " number of fail attempts" + informationMessage());
+
+                    } else {// default presentation
+                        updateGameStatus(clientSessionKey, informationMessage() + "\n Enter a character that you think is in the word ");
+                    }
+
+                } else { // Wrong characther guess
+                    if (++failedAttempts > currentWord.length()) {
+                        updateGameStatus(clientSessionKey, "You loose, the correct word was " + currentWord + " ");
+
+                        --this.score;//decrease score counter
+
+                        generateNewWord();
+
+                        //sends hidden word
+                        updateGameStatus(clientSessionKey, informationMessage());
+                    } else {
+                        updateGameStatus(clientSessionKey, informationMessage());
+
+                    }
                 }
-            }else {
-                    System.out.println("No Guesses found");
+
+            } else {
+                System.out.println("Full Word guessed");
+            }
+        }
+        else {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+                System.out.println("No Guesses found");
             }
         }//while
     }
 
     private void updateGameStatus(SelectionKey cKey, String gStatus){
         GameStatusListener lis;
-        if( (lis = slisteners.poll())!= null){
+        if( (lis = slisteners.peek())!= null){
             lis.gameStatus(cKey,gStatus);
         }
     }
 
     @Override
-    public void getGuess(String msgBody) {
-            guesses.add(msgBody);
+    public void getGuess(SelectionKey guessKey, String msgBody) {
+            this.guess.put(guessKey,msgBody);
 
     }
 
+
     @Override
-    public void addGameStatusListener(Queue<GameStatusListener> listeners, GameStatusListener gameOutPut) {
+    public void addGameStatusListener(ConcurrentLinkedQueue<GameStatusListener> listeners, GameStatusListener gameOutPut) {
         this.slisteners= listeners;
         this.slisteners.add(gameOutPut);
     }

@@ -2,7 +2,7 @@ package com.crakama.server.service;
 
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
-import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public interface ServerInterface {
 
@@ -11,7 +11,8 @@ public interface ServerInterface {
     void playGame(SelectionKey poll) throws IOException, ClassNotFoundException;
 
 
-    void getGuess(String msgBody);
+    void getGuess(SelectionKey poll, String msgBody);
 
-    void addGameStatusListener(Queue<GameStatusListener> listeners, GameStatusListener gameOutPut);
+    void addGameStatusListener( ConcurrentLinkedQueue<GameStatusListener> cq,GameStatusListener gameOutPut);
+
 }
