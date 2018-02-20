@@ -14,11 +14,11 @@ A simple java system that uses TCP sockets for communication. Its consists of se
   - Socket Channels
   - Selector Keys
   
-  ![Threaded Blocking Server](https://github.com/crakama/HangManGame-IO-in-Distributed-Systems/blob/master/src/com/crakama/images/ServerConnection.PNG)
-  ![Threaded Blocking Server](https://github.com/crakama/HangManGame-IO-in-Distributed-Systems/blob/master/src/com/crakama/images/Multithreading)
-   ![Threaded Blocking Server](https://github.com/crakama/HangManGame-IO-in-Distributed-Systems/blob/master/src/com/crakama/images/loose.PNG)
-    ![Threaded Blocking Server](https://github.com/crakama/HangManGame-IO-in-Distributed-Systems/blob/master/src/com/crakama/images/win.PNG)
-    ![Threaded Blocking Server](https://github.com/crakama/HangManGame-IO-in-Distributed-Systems/blob/master/src/com/crakama/images/MultipleClients.png)
+  ![Threaded Blocking Server](https://github.com/crakama/Java-NIO-in-Distributed-Systems-HangManGame/blob/master/src/com/crakama/images/ServerConnection.PNG)
+  ![Threaded Blocking Server](https://github.com/crakama/Java-NIO-in-Distributed-Systems-HangManGame/blob/master/src/com/crakama/images/Multithreading.PNG)
+   ![Threaded Blocking Server](https://github.com/crakama/Java-NIO-in-Distributed-Systems-HangManGame/blob/master/src/com/crakama/images/loose.PNG)
+    ![Threaded Blocking Server](https://github.com/crakama/Java-NIO-in-Distributed-Systems-HangManGame/blob/master/src/com/crakama/images/win.PNG)
+    ![Threaded Blocking Server](https://github.com/crakama/Java-NIO-in-Distributed-Systems-HangManGame/blob/master/src/com/crakama/images/MultipleClients.png)
 
 
 
