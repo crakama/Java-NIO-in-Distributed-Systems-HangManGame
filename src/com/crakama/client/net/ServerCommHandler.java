@@ -21,12 +21,12 @@ import static com.crakama.client.view.CmdType.START;
 
 public class ServerCommHandler  implements Runnable{
     private InetSocketAddress serverAddress;
-    private final Queue<ByteBuffer> pendindDataToSend = new ArrayDeque<>();
+    private final Queue<ByteBuffer> pendindDataToSend = new ConcurrentLinkedQueue<>();
     private final MsgProcessor msgProcessor = new MsgProcessor();
     private ByteBuffer bufferedServerMsg = ByteBuffer.allocate(ConstantValues.BUFFER_SIZE);
     private List<OutputHandler> commListeners = new ArrayList<>();
     private List updateInterestOPS = new LinkedList();
-    private boolean connected = false;
+
     private SocketChannel socketChannel;
     private Selector selector;
 
@@ -152,7 +152,6 @@ public class ServerCommHandler  implements Runnable{
     public void sendMsg(SelectionKey key) throws IOException {
         socketChannel = (SocketChannel)key.channel();
         ByteBuffer msg;
-        synchronized (pendindDataToSend) {
             while ((msg = pendindDataToSend.peek()) != null) {
                 socketChannel.write(msg);
                 if (msg.hasRemaining()) {
@@ -161,7 +160,7 @@ public class ServerCommHandler  implements Runnable{
                 pendindDataToSend.remove();
             }
             key.interestOps(SelectionKey.OP_READ);
-        }
+
     }
 
     public void connect(String host, int port,OutputHandler outputHandler) throws IOException {
@@ -179,7 +178,6 @@ public class ServerCommHandler  implements Runnable{
         socketChannel = SocketChannel.open();
         socketChannel.configureBlocking(false);
         socketChannel.connect(serverAddress);
-        connected = true;
     }
 
     public void changeOPs(){
@@ -194,7 +192,7 @@ public class ServerCommHandler  implements Runnable{
         addToBuffer(encodedMsg);
         changeOPs();
     }
-    public void playGame(CmdType cmd) throws IOException {
+    public void playGame(CmdType cmd) {
         if(cmd.equals(START)){
            String encodedMsg = encodeMsg(MsgType.START.toString(),null);
            addToBuffer(encodedMsg);
@@ -225,6 +223,12 @@ public class ServerCommHandler  implements Runnable{
     public void addToBuffer(String encodedMsg){
         synchronized (pendindDataToSend){
             pendindDataToSend.add(ByteBuffer.wrap(encodedMsg.getBytes()));
+        }
+    }
+    private static void processSelectorActions(Queue<Runnable> selectorActions) {
+        Runnable action;
+        while ((action = selectorActions.poll()) != null) {
+            action.run();
         }
     }
 
