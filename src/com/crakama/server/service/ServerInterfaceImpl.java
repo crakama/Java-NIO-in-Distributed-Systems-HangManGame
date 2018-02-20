@@ -20,7 +20,7 @@ public class ServerInterfaceImpl  implements ServerInterface {
     private String currentWord;
     private String hiddenWord = new String();
     private LinkedList<String> currentGuess= new LinkedList<String>();
-   Map<SelectionKey,String> guess=new HashMap<SelectionKey,String>();
+   Map<SelectionKey,String> guess=new ConcurrentHashMap<>();
     private Queue<GameStatusListener> slisteners;
     public ServerInterfaceImpl(){
 

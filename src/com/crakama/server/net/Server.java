@@ -14,9 +14,12 @@ import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ForkJoinPool;
 
 public class Server {
-
+    ExecutorService pool = Executors.newFixedThreadPool(20);
     private final ServerInterface serverInterface = new ServerInterfaceImpl();
     Queue<String> gameStatusUpdate = new ConcurrentLinkedQueue<>();
     Queue<SelectionKey> updateInterestOPS = new ConcurrentLinkedQueue<>();
@@ -87,9 +90,8 @@ public class Server {
     private void requestHandler(SelectionKey key) throws IOException {
         try {
             ClientSession clientSession = (ClientSession) key.attachment();
-
             serverInterface.addGameStatusListener(new ConcurrentLinkedQueue<>(), new GameOutPut());
-            clientSession.commHandler.receiveMsg(key);
+            clientSession.commHandler.receiveMsg(pool,key);
         }catch (IOException clientDisconnected){
             removeClient(key);
         }

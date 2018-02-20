@@ -11,12 +11,13 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
 
 public class ClientCommHandler implements Runnable{
     ByteBuffer bufferedClientMsg = ByteBuffer.allocateDirect(ConstantValues.BUFFER_SIZE);
     private final MsgProcessor msgProcessor = new MsgProcessor();
-    Queue<SelectionKey> sessionkeys = new ConcurrentLinkedQueue();
+    Queue<SelectionKey> sessionkeys = new ConcurrentLinkedQueue<>();
     private SocketChannel socketChannel;
     private ServerInterface serveInterface;
     public ClientCommHandler(ServerInterface serverInterface, SocketChannel socketChannel)  {
@@ -63,7 +64,7 @@ public class ClientCommHandler implements Runnable{
         socketChannel.close();
     }
 
-    public void receiveMsg(SelectionKey key) throws IOException {
+    public void receiveMsg(ExecutorService pool, SelectionKey key) throws IOException {
         sessionkeys.add(key);
         bufferedClientMsg.clear();
         int data = socketChannel.read(bufferedClientMsg);
@@ -74,7 +75,7 @@ public class ClientCommHandler implements Runnable{
         String receivedMsg = readBufferData();
         msgProcessor.appendRecvdString(receivedMsg);
 
-        ForkJoinPool.commonPool().execute(this);
+        pool.execute(this);
     }
     /**
      * Prepare buffer for reading
