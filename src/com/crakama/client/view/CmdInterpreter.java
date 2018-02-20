@@ -60,16 +60,14 @@ public class CmdInterpreter implements Runnable{
     private class ServerResponse implements OutputHandler {
         @Override
         public void handleServerResponse(String receivedMessage) {
-            System.out.println(ConstantValues.MSG_START + receivedMessage+
-                    ConstantValues.MSG_END);
+            System.out.println(ConstantValues.MSG_START + receivedMessage);
         }
 
         @Override
         public void notifyUser(InetSocketAddress inetSocketAddress) {
             System.out.println(ConstantValues.MSG_START +
-                    "Connected to: " + inetSocketAddress.getHostName() +"on Port: " +
-                    inetSocketAddress.getPort()+"\n"+ informUser()
-                    + ConstantValues.MSG_END);
+                    "Successfully Connected to: " + inetSocketAddress.getHostName() +" server on Port: " +
+                    inetSocketAddress.getPort()+"\n"+ informUser());
         }
 
         @Override

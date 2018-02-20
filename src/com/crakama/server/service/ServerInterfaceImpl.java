@@ -34,10 +34,9 @@ public class ServerInterfaceImpl  implements ServerInterface {
 
     @Override
     public String initialiseGame(){
-        String welcomeMessage = "Welcome to HangMan Game. I will pick a word and you will try to guess it character by character.\n" +
-                "If you guess wrong 6 times...I WIN! If you get the word before hand...YOU WIN!.\n" +
-                "Every time you guess a character incorrectly, the number of trials will reduce by one \n" +
-                "Every time you guess a character correctly, the letter will be filled in all its positions in the word\n +" +
+        String welcomeMessage = "Welcome to HangMan Game. It will pick a word and you will try to guess it character by character.\n" +
+                "If you guess wrongly the number of times equal to the length of the word...you loose. An incorrect character guess will reduce the number of trials by one \n" +
+                "A correct guess, will be filled in all its positions in the word\n\n" +
                 "Type START to begin!\n";
         return welcomeMessage;
     }
@@ -109,7 +108,7 @@ public class ServerInterfaceImpl  implements ServerInterface {
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-                System.out.println("No Guesses found");
+               // System.out.println("No Guesses found");
             }
         }//while
     }
@@ -144,6 +143,8 @@ public class ServerInterfaceImpl  implements ServerInterface {
         fileModel.readFile();
         failedAttempts = 0;
         currentWord = fileModel.pickWord();
+        System.out.println("thread with id : " + Thread.currentThread().getId() +
+                " fetched word: " + currentWord);
 
         /*** Hide characters in word***/
         StringBuilder str = new StringBuilder();

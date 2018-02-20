@@ -80,7 +80,6 @@ public class Server {
         ServerSocketChannel serverSocketChannel = (ServerSocketChannel) key.channel();
         SocketChannel socketChannel = serverSocketChannel.accept();
         socketChannel.configureBlocking(false);
-        serverInterface.addGameStatusListener(new ConcurrentLinkedQueue<>(), new GameOutPut());
         ClientCommHandler clientCommHandler = new ClientCommHandler(serverInterface,socketChannel);
         socketChannel.register(selector,SelectionKey.OP_WRITE,
                 new ClientSession(socketChannel,clientCommHandler,serverInterface));
@@ -88,6 +87,8 @@ public class Server {
     private void requestHandler(SelectionKey key) throws IOException {
         try {
             ClientSession clientSession = (ClientSession) key.attachment();
+
+            serverInterface.addGameStatusListener(new ConcurrentLinkedQueue<>(), new GameOutPut());
             clientSession.commHandler.receiveMsg(key);
         }catch (IOException clientDisconnected){
             removeClient(key);
